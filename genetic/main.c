@@ -14,7 +14,7 @@ typedef struct _point {
 /*Struct qui représente un tableau et son scoring*/
 typedef struct _tabscore {
     int tab[N];
-    int score;
+    double score;
 } TabScore;
 
 double matrix[N][N];
@@ -23,10 +23,14 @@ double random_double(double min, double max) {
     return min + (rand() / (RAND_MAX / (max - min)));
 }
 
-void permutTab(int tab[]){
-    int i, j, temp;
-    for(i=1;i<N-1;++i) {
+void permute_tab(int tab[]){
+    int n, i, j, temp;
+    for(n=0;n<100;++n) {
         j = rand() % (N-2) + 1;
+        i = rand() % (N-2) + 1;
+        if (i == j) {
+            j = (j+1) % (N-2) + 1;
+        }
         temp = tab[i];
         tab[i] = tab[j];
         tab[j] = temp;
@@ -34,15 +38,15 @@ void permutTab(int tab[]){
 }
 
 
-double calculateDistance(Point* first, Point* second) {
+double calc_dist(Point* first, Point* second) {
     return sqrt((first->lat - second->lat) * (first->lat - second->lat) + (first->lon - second->lon) * (first->lon - second->lon));
 }
 
-void fillMatrix(Point* tab[]) {
+void fill_matrix(Point* tab[]) {
     int i, j;
     for(i=0;i<N;++i) {
         for(j=0;j<N;++j) {
-            matrix[i][j] = calculateDistance(tab[i], tab[j]);
+            matrix[i][j] = calc_dist(tab[i], tab[j]);
         }
     }
 }
@@ -51,7 +55,7 @@ double distance(int first, int second) {
     return matrix[first][second];
 }
 
-void allocAndFillTab(Point* tab[]) {
+void alloc_and_fill_tab(Point* tab[]) {
     int i;
     for(i=0;i<N;++i) {
         tab[i] = malloc(sizeof(Point));
@@ -62,8 +66,9 @@ void allocAndFillTab(Point* tab[]) {
     tab[N-1] = tab[0];
 }
 
-int scoring(int tab[], int taille) {
-    int i, score = 0;
+double scoring(int tab[], int taille) {
+    int i;
+    double score = 0;
     for(i=0;i<taille-1;++i) {
         score += distance(tab[i], tab[i+1])*1000;
     }
@@ -147,64 +152,115 @@ void quick_sort_children(TabScore* tab[], int start, int end) {
     quick_sort_children(tab, i+2, end);
 }
 
+void init_children(TabScore* tab[], int size, Point* tab_points[]) {
+    int i;
+    for (i = 0; i < size; i++) {
+        tab[i] = create_tab_score_from_points(tab_points);
+        permute_tab(tab[i]->tab);
+        tab[i]->score = scoring(tab[i]->tab, N);
+    }
+}
+
 void print_array(int arr[]) {
     int i;
     for (i = 0; i < N; i++) {
         printf("%d ", arr[i]);
     }
-    printf("Score: %d", scoring(arr, N));
+    printf("Score: %f", scoring(arr, N));
     printf("\n");
 }
+
+void get_2_random_parents(TabScore* parents[], TabScore** parent1, TabScore** parent2, int max) {
+    int i, j;
+    double total_score = 0;
+    double cumulative[max];
+    
+    for (i = 0; i < max; i++) {
+        total_score += 1.0 / parents[i]->score;
+        cumulative[i] = total_score;
+    }
+
+
+    double r1 = ((double)rand() / RAND_MAX) * total_score;
+    double r2 = ((double)rand() / RAND_MAX) * total_score;
+
+
+    for (i = 0; i < max; i++) {
+        if (r1 <= cumulative[i]) {
+            *parent1 = parents[i];
+            break;
+        }
+    }
+    for (j = 0; j < max; j++) {
+        if (r2 <= cumulative[j]) {
+            *parent2 = parents[j];
+            break;
+        }
+    }
+
+    if (*parent1 == *parent2) {
+        *parent2 = parents[(j + 1) % max];
+    }
+}
+
+void copy_children_to_parents(TabScore* parents[], TabScore* children[], int max) {
+    int i;
+    for (i = 0; i < max; i++) {
+        free_tab_score(parents[i]);
+        parents[i] = children[i];
+        children[i] = NULL;
+    }
+}
+
 
 int main() {
     srand(time(NULL));
 
     Point* tab1[N];
-    Point* tab2[N];
     int child[N];
 
-    allocAndFillTab(tab1);
-    allocAndFillTab(tab2);
-    fillMatrix(tab1);
+    alloc_and_fill_tab(tab1);
+    fill_matrix(tab1);
 
-
-    TabScore* parent1 = create_tab_score_from_points(tab1);
-    TabScore* parent2 = create_tab_score_from_points(tab2);
+    TabScore* parents[1000];
+    init_children(parents, 1000, tab1);
+    quick_sort_children(parents, 0, 999);
     TabScore* childs[1000];
-
-    permutTab(parent1->tab);
-    permutTab(parent2->tab);
-    parent1->score = scoring(parent1->tab, N);
-    parent2->score = scoring(parent2->tab, N);
+    int best_scores[1000];
+    double mean_scores[1000];
 
 
-    printf("Parent 1: ");
-    print_array(parent1->tab);
-    printf("Parent 2: ");
-    print_array(parent2->tab);
+    int s;
+    int nb_gen = 10;
 
-    int minScoreParent = parent1->score < parent2->score ? parent1->score : parent2->score;
+    for(s=0;s<nb_gen;++s) {
 
-    int nb_meilleur = 0;
+        int i;
+        TabScore* parent1;
+        TabScore* parent2;
+        for(i=0;i < 1000;++i) {
+            get_2_random_parents(parents, &parent1, &parent2, 300);
+            order_crossover(parent1->tab, parent2->tab, child);
 
-    int i;
-    for(i=0;i < 1000;++i) {
-        order_crossover(parent1->tab, parent2->tab, child);
-        if(scoring(child, N) < minScoreParent) {
-            printf("Enfant  : ");
-            print_array(child);
-            nb_meilleur++;
+            childs[i] = create_tab_score_from_int(child);
         }
-        childs[i] = create_tab_score_from_int(child);
-    }
 
-    quick_sort_children(childs, 0, 999);
-    printf("100 premiers enfants triés : \n");
-    for(i=0;i<100;++i) {
-        print_array(childs[i]->tab);
+        quick_sort_children(childs, 0, 999);
+        printf("100 premiers enfants triés : \n");
+        for(i=0;i<100;++i) {
+            print_array(childs[i]->tab);
+        }
+        best_scores[s] = childs[0]->score;
+        mean_scores[s] = 0;
+        for(i=0;i<1000;++i) {
+            mean_scores[s] += childs[i]->score;
+        }
+        mean_scores[s] /= 1000;
+        copy_children_to_parents(parents, childs, 1000);
     }
+    printf("premier meilleur score: %d, dernier meilleur score: %d\n", best_scores[0], best_scores[nb_gen-1]);
+    printf("Premier score: %f, dernier score: %f\n", mean_scores[0], mean_scores[nb_gen-1]);
 
-    printf("Nombre de meilleur enfant : %d sur 1000\n", nb_meilleur);
 
     return 0;
 }
