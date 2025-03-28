@@ -23,6 +23,16 @@ double random_double(double min, double max) {
     return min + (rand() / (RAND_MAX / (max - min)));
 }
 
+void permutTab(int tab[]){
+    int i, j, temp;
+    for(i=1;i<N-1;++i) {
+        j = rand() % (N-2) + 1;
+        temp = tab[i];
+        tab[i] = tab[j];
+        tab[j] = temp;
+    }
+}
+
 
 double calculateDistance(Point* first, Point* second) {
     return sqrt((first->lat - second->lat) * (first->lat - second->lat) + (first->lon - second->lon) * (first->lon - second->lon));
@@ -49,12 +59,13 @@ void allocAndFillTab(Point* tab[]) {
         tab[i]->lat = random_double(48.3, 49.2);
         tab[i]->lon = random_double(2.8, .9);
     }
+    tab[N-1] = tab[0];
 }
 
 int scoring(int tab[], int taille) {
     int i, score = 0;
     for(i=0;i<taille-1;++i) {
-        score += distance(tab[i], tab[i+1]);
+        score += distance(tab[i], tab[i+1])*1000;
     }
     return score;
 }
@@ -65,7 +76,6 @@ TabScore* create_tab_score(Point* tab[]) {
     for(i = 0; i < N; i++) {
         ts->tab[i] = tab[i]->id;
     }
-
     ts->score = scoring(ts->tab, N);
     return ts;
 }
@@ -112,6 +122,7 @@ void print_array(int arr[]) {
     for (i = 0; i < N; i++) {
         printf("%d ", arr[i]);
     }
+    printf("Score: %d", scoring(arr, N));
     printf("\n");
 }
 
@@ -122,11 +133,19 @@ int main() {
     Point* tab2[N];
     int child[N];
 
+    allocAndFillTab(tab1);
+    allocAndFillTab(tab2);
+    fillMatrix(tab1);
 
 
     TabScore* parent1 = create_tab_score(tab1);
     TabScore* parent2 = create_tab_score(tab2);
     /*TabScore* childs[1000];*/
+
+    permutTab(parent1->tab);
+    permutTab(parent2->tab);
+    parent1->score = scoring(parent1->tab, N);
+    parent2->score = scoring(parent2->tab, N);
 
 
     printf("Parent 1: ");
@@ -134,14 +153,21 @@ int main() {
     printf("Parent 2: ");
     print_array(parent2->tab);
 
+    int minScoreParent = parent1->score < parent2->score ? parent1->score : parent2->score;
+
+    int nb_meilleur = 0;
+
     int i;
     for(i=0;i < 1000;++i) {
         order_crossover(parent1->tab, parent2->tab, child);
-        if(scoring(child, N) < 4) {
+        if(scoring(child, N) < minScoreParent) {
             printf("Enfant  : ");
             print_array(child);
+            nb_meilleur++;
         }
     }
+
+    printf("Nombre de meilleur enfant : %d sur 1000\n", nb_meilleur);
 
     return 0;
 }
