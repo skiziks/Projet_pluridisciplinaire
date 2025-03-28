@@ -70,7 +70,17 @@ int scoring(int tab[], int taille) {
     return score;
 }
 
-TabScore* create_tab_score(Point* tab[]) {
+TabScore* create_tab_score_from_int(int tab[]) {
+    TabScore* ts = malloc(sizeof(TabScore));
+    int i;
+    for(i = 0; i < N; i++) {
+        ts->tab[i] = tab[i];
+    }
+    ts->score = scoring(ts->tab, N);
+    return ts;
+}
+
+TabScore* create_tab_score_from_points(Point* tab[]) {
     TabScore* ts = malloc(sizeof(TabScore));
     int i;
     for(i = 0; i < N; i++) {
@@ -117,6 +127,26 @@ void order_crossover(int parent1[], int parent2[], int child[]) {
     }
 }
 
+void quick_sort_children(TabScore* tab[], int start, int end) {
+    if (end <= start) return;
+    int pivot = tab[end]->score;
+    int i = start - 1;
+    int j;
+    for (j = start; j < end; j++) {
+        if (tab[j]->score < pivot) {
+            i++;
+            TabScore* temp = tab[i];
+            tab[i] = tab[j];
+            tab[j] = temp;
+        }
+    }
+    TabScore* temp = tab[i+1];
+    tab[i+1] = tab[end];
+    tab[end] = temp;
+    quick_sort_children(tab, start, i);
+    quick_sort_children(tab, i+2, end);
+}
+
 void print_array(int arr[]) {
     int i;
     for (i = 0; i < N; i++) {
@@ -138,9 +168,9 @@ int main() {
     fillMatrix(tab1);
 
 
-    TabScore* parent1 = create_tab_score(tab1);
-    TabScore* parent2 = create_tab_score(tab2);
-    /*TabScore* childs[1000];*/
+    TabScore* parent1 = create_tab_score_from_points(tab1);
+    TabScore* parent2 = create_tab_score_from_points(tab2);
+    TabScore* childs[1000];
 
     permutTab(parent1->tab);
     permutTab(parent2->tab);
@@ -165,6 +195,13 @@ int main() {
             print_array(child);
             nb_meilleur++;
         }
+        childs[i] = create_tab_score_from_int(child);
+    }
+
+    quick_sort_children(childs, 0, 999);
+    printf("100 premiers enfants triés : \n");
+    for(i=0;i<100;++i) {
+        print_array(childs[i]->tab);
     }
 
     printf("Nombre de meilleur enfant : %d sur 1000\n", nb_meilleur);
