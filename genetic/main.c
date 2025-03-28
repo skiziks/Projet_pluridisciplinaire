@@ -2,20 +2,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include "interface.h"
 
-#define N 10 
-
-typedef struct _point {
-    int id;
-    double lat;
-    double lon;
-} Point;
-
-/*Struct qui représente un tableau et son scoring*/
-typedef struct _tabscore {
-    int tab[N];
-    double score;
-} TabScore;
 
 double matrix[N][N];
 
@@ -48,6 +36,16 @@ void fill_matrix(Point* tab[]) {
         for(j=0;j<N;++j) {
             matrix[i][j] = calc_dist(tab[i], tab[j]);
         }
+    }
+}
+
+void print_matrix() {
+    int i, j;
+    for(i=0;i<N;++i) {
+        for(j=0;j<N;++j) {
+            printf("%f ", matrix[i][j]);
+        }
+        putchar('\n');
     }
 }
 
@@ -170,6 +168,14 @@ void print_array(int arr[]) {
     printf("\n");
 }
 
+void print_points_from_array(int arr[], Point* tab[]) {
+    int i;
+    for (i = 0; i < N; i++) {
+        printf("(%f, %f) ", tab[arr[i]]->lat, tab[arr[i]]->lon);
+    }
+    printf("\n");
+}
+
 void get_2_random_parents(TabScore* parents[], TabScore** parent1, TabScore** parent2, int max) {
     int i, j;
     double total_score = 0;
@@ -232,6 +238,7 @@ int main() {
 
     int s;
     int nb_gen = 10;
+    print_points_from_array(parents[0]->tab, tab1);
 
     for(s=0;s<nb_gen;++s) {
 
@@ -260,7 +267,8 @@ int main() {
     }
     printf("premier meilleur score: %d, dernier meilleur score: %d\n", best_scores[0], best_scores[nb_gen-1]);
     printf("Premier score: %f, dernier score: %f\n", mean_scores[0], mean_scores[nb_gen-1]);
+    print_points_from_array(parents[0]->tab, tab1);
 
-
+    print_matrix();
     return 0;
 }
