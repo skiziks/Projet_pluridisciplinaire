@@ -32,17 +32,18 @@ void pause_keyboard(void){
   MLV_wait_keyboard(NULL, NULL, NULL);
 }
 
-void show_path(Point* tab[], int tab_points[]) {
+void show_path(Point* tab[], int tab_points[], MLV_Color color, int with_circle) {
   int i;
-  MLV_draw_filled_rectangle(BASE_X, BASE_Y, WIDTH_WINDOWS_PIX, HEIGHT_WINDOWS_PIX, MLV_rgba(0,0,0,255));
-  for(i=0;i<N;++i) {
-    MLV_draw_filled_circle(BASE_X + tab[tab_points[i]]->lat * 10, BASE_Y + tab[tab_points[i]]->lon * 10, 5, MLV_rgba(255,0,0,255));
-    if(i > 0) {
-      MLV_draw_line(BASE_X + tab[tab_points[i-1]]->lat * 10, BASE_Y + tab[tab_points[i-1]]->lon * 10,
-                    BASE_X + tab[tab_points[i]]->lat * 10, BASE_Y + tab[tab_points[i]]->lon * 10,
-                    MLV_rgba(255,255,255,255));
+  for(i=1;i<N;++i) {
+    Point* point = tab[tab_points[i]];
+    if (with_circle) {
+      MLV_draw_filled_circle(BASE_X + point->lat * 10, BASE_Y + point->lon * 10, 5, point->id?MLV_rgba(255,0,0,255):MLV_rgba(0,255,0,255));
     }
+    
+      MLV_draw_line(BASE_X + tab[tab_points[i-1]]->lat * 10, BASE_Y + tab[tab_points[i-1]]->lon * 10,
+                  BASE_X + point->lat * 10, BASE_Y + point->lon * 10,
+                  color);
   }
-  actualise_window();
-  pause_action();
+  /*actualise_window();*/
+  /*pause_action();*/
 }

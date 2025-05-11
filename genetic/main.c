@@ -2,14 +2,48 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <MLV/MLV_all.h>
 #include "interface.h"
 
-#define PERCENT_KEEP 5
-#define PERCENT_MUTATE 20
-#define PERCENT_CROSSOVER 25
-#define PERCENT_NEW 50
-
 #define NB_INDIVIDU 10000
+
+#define PERCENT_KEEP_PHASE1 1
+#define IND_KEEP1 (NB_INDIVIDU*PERCENT_KEEP_PHASE1/100)
+#define PERCENT_MUTATE_PHASE1 15
+#define IND_MUTATE1 (NB_INDIVIDU*PERCENT_MUTATE_PHASE1/100 + IND_KEEP1)
+#define PERCENT_CROSSOVER_PHASE1 29
+#define IND_CROSSOVER1 (NB_INDIVIDU*PERCENT_CROSSOVER_PHASE1/100 + IND_MUTATE1)
+#define PERCENT_NEW_PHASE1 55
+#define IND_NEW1 (NB_INDIVIDU*PERCENT_NEW_PHASE1/100 + IND_CROSSOVER1)
+
+#define PERCENT_KEEP_PHASE2 1
+#define IND_KEEP2 (NB_INDIVIDU*PERCENT_KEEP_PHASE2/100)
+#define PERCENT_MUTATE_PHASE2 35
+#define IND_MUTATE2 (NB_INDIVIDU*PERCENT_MUTATE_PHASE2/100 + IND_KEEP2)
+#define PERCENT_CROSSOVER_PHASE2 44
+#define IND_CROSSOVER2 (NB_INDIVIDU*PERCENT_CROSSOVER_PHASE2/100 + IND_MUTATE2)
+#define PERCENT_NEW_PHASE2 20
+#define IND_NEW2 (NB_INDIVIDU*PERCENT_NEW_PHASE2/100 + IND_CROSSOVER2)
+
+#define PERCENT_KEEP_PHASE3 1
+#define IND_KEEP3 (NB_INDIVIDU*PERCENT_KEEP_PHASE3/100)
+#define PERCENT_MUTATE_PHASE3 49
+#define IND_MUTATE3 (NB_INDIVIDU*PERCENT_MUTATE_PHASE3/100 + IND_KEEP3)
+#define PERCENT_CROSSOVER_PHASE3 50
+#define IND_CROSSOVER3 (NB_INDIVIDU*PERCENT_CROSSOVER_PHASE3/100 + IND_MUTATE3)
+#define PERCENT_NEW_PHASE3 0
+#define IND_NEW3 (NB_INDIVIDU*PERCENT_NEW_PHASE3/100 + IND_CROSSOVER3)
+
+#define PHASE2_GEN N
+#define PHASE3_GEN N*4
+
+#define IND_KEEP (s < PHASE2_GEN ? IND_KEEP1 : (s < PHASE3_GEN ? IND_KEEP2 : IND_KEEP3))
+#define IND_MUTATE (s < PHASE2_GEN ? IND_MUTATE1 : (s < PHASE3_GEN ? IND_MUTATE2 : IND_MUTATE3))
+#define IND_CROSSOVER (s < PHASE2_GEN ? IND_CROSSOVER1 : (s < PHASE3_GEN ? IND_CROSSOVER2 : IND_CROSSOVER3))
+#define IND_NEW (s < PHASE2_GEN ? IND_NEW1 : (s < PHASE3_GEN ? IND_NEW2 : IND_NEW3))
+
+
+#define PERCENT_REPRODUCTION 30
 
 
 double matrix[N][N];
@@ -21,7 +55,7 @@ double random_double(double min, double max) {
 void permute_tab(int tab[], int nb_permut){
     int n, i, j, temp;
     for(n=0;n<nb_permut;++n) {
-        j = rand() % (N-2) + 1;
+        j = rand() % (N-2) + 1; /* %(N-2) + 1 to not exchange the start and finish*/
         i = rand() % (N-2) + 1;
         if (i == j) {
             j = (j+1) % (N-2) + 1;
@@ -135,6 +169,10 @@ void order_crossover(int parent1[], int parent2[], int child[]) {
         }
         j++;
     }
+
+    /*Mutate the child twice*/
+    permute_tab(child, 2);
+
 }
 
 void quick_sort_children(TabScore* tab[], int start, int end) {
@@ -185,31 +223,15 @@ void print_points_from_array(int arr[], Point* tab[]) {
 
 void get_2_random_parents(TabScore* parents[], TabScore** parent1, TabScore** parent2, int max) {
     int i, j;
-    double total_score = 0;
-    double cumulative[max];
-    
-    for (i = 0; i < max; i++) {
-        total_score += 1.0 / parents[i]->score;
-        cumulative[i] = total_score;
-    }
 
 
-    double r1 = ((double)rand() / RAND_MAX) * total_score;
-    double r2 = ((double)rand() / RAND_MAX) * total_score;
+    double r1 = ((double)rand() / RAND_MAX) * max * PERCENT_REPRODUCTION / 100;
+    double r2 = ((double)rand() / RAND_MAX) * max * PERCENT_REPRODUCTION / 100;
+    i = (int)r1;
+    j = (int)r2;
 
-
-    for (i = 0; i < max; i++) {
-        if (r1 <= cumulative[i]) {
-            *parent1 = parents[i];
-            break;
-        }
-    }
-    for (j = 0; j < max; j++) {
-        if (r2 <= cumulative[j]) {
-            *parent2 = parents[j];
-            break;
-        }
-    }
+    *parent1 = parents[i];
+    *parent2 = parents[j];
 
     if (*parent1 == *parent2) {
         *parent2 = parents[(j + 1) % max];
@@ -223,6 +245,15 @@ void copy_children_to_parents(TabScore* parents[], TabScore* children[], int max
         parents[i] = children[i];
         children[i] = NULL;
     }
+}
+
+int count_same_first_score(TabScore* parents[], int max) {
+    int i;
+    int count = 0;
+    for (i = 0; i < max && parents[i]->score == parents[0]->score; i++) {
+        count++;
+    }
+    return count;
 }
 
 
@@ -247,7 +278,6 @@ int main() {
     int nb_gen = 1000;
     print_points_from_array(parents[0]->tab, tab1);
     clear_window();
-    show_path(tab1, parents[0]->tab);
 
     for(s=0;s<nb_gen;++s) {
 
@@ -255,20 +285,24 @@ int main() {
         TabScore* parent1;
         TabScore* parent2;
 
-        for(i=0;i < NB_INDIVIDU*PERCENT_KEEP/100;++i) {
+        /*Keep*/
+        for(i=0;i < IND_KEEP;++i) {
             childs[i] = create_tab_score_from_int(parents[i]->tab);
         }
-        for(;i < NB_INDIVIDU*PERCENT_KEEP/100 + NB_INDIVIDU*PERCENT_MUTATE/100;++i) {
-            childs[i] = create_tab_score_from_int(parents[i]->tab);
-            permute_tab(childs[i]->tab, N/10);
+        /*Mutate*/
+        for(;i < IND_MUTATE;++i) {
+            childs[i] = create_tab_score_from_int(parents[i%(PERCENT_REPRODUCTION * N / 100)]->tab);
+            permute_tab(childs[i]->tab, N*5/(s+1) + 2); /*We don't want to much mutation by the end, sometimes just 2 is enough*/
             childs[i]->score = scoring(childs[i]->tab, N);
         }
-        for(;i < NB_INDIVIDU*PERCENT_KEEP/100 + NB_INDIVIDU*PERCENT_MUTATE/100 + NB_INDIVIDU*PERCENT_CROSSOVER/100;++i) {
+        /*Crossover*/
+        for(;i < IND_CROSSOVER;++i) {
             get_2_random_parents(parents, &parent1, &parent2, 300);
             order_crossover(parent1->tab, parent2->tab, child);
             childs[i] = create_tab_score_from_int(child);
         }
-        for(;i < NB_INDIVIDU*PERCENT_KEEP/100 + NB_INDIVIDU*PERCENT_MUTATE/100 + NB_INDIVIDU*PERCENT_CROSSOVER/100 + NB_INDIVIDU*PERCENT_NEW/100;++i) {
+        /*New*/
+        for(;i < IND_NEW;++i) {
             childs[i] = create_tab_score_from_points(tab1);
             permute_tab(childs[i]->tab, N*10);
             childs[i]->score = scoring(childs[i]->tab, N);
@@ -281,12 +315,26 @@ int main() {
         }*/
         copy_children_to_parents(parents, childs, NB_INDIVIDU);
         clear_window();
-        show_path(tab1, parents[0]->tab);
-        printf("Generation %d : Best score: %f\n", s , parents[0]->score);
+        for(i=50;i>=0;--i) {
+            show_path(tab1, parents[i]->tab, MLV_rgba(255-i, 255-i, 255-i, 255), i==0);
+        }
+        actualise_window();
+        printf("Generation %d : Best score: %f Median: %f\n", s , parents[0]->score, parents[NB_INDIVIDU/2]->score);
+        
+        printf("Number of same score: %d\n", count_same_first_score(parents, NB_INDIVIDU));
     }
     printf("Best score: %f\n", parents[0]->score);
+    printf("Median : %f\n", parents[NB_INDIVIDU/2]->score);
     print_points_from_array(parents[0]->tab, tab1);
 
     print_matrix();
+    actualise_window();
+    clear_window();
+    actualise_window();
+    show_path(tab1, parents[0]->tab, MLV_rgba(255, 255, 255, 255), 1);
+    actualise_window();
+
+    pause_keyboard();
+    pause_keyboard();
     return 0;
 }
