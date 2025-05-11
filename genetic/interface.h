@@ -6,7 +6,7 @@
 
 #define WAIT_TIME_MILLISEC 500
 
-#define N 10 
+#define N 80 
 
 typedef struct _point {
     int id;

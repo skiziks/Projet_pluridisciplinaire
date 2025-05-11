@@ -4,6 +4,13 @@
 #include <math.h>
 #include "interface.h"
 
+#define PERCENT_KEEP 5
+#define PERCENT_MUTATE 20
+#define PERCENT_CROSSOVER 25
+#define PERCENT_NEW 50
+
+#define NB_INDIVIDU 10000
+
 
 double matrix[N][N];
 
@@ -11,9 +18,9 @@ double random_double(double min, double max) {
     return min + (rand() / (RAND_MAX / (max - min)));
 }
 
-void permute_tab(int tab[]){
+void permute_tab(int tab[], int nb_permut){
     int n, i, j, temp;
-    for(n=0;n<100;++n) {
+    for(n=0;n<nb_permut;++n) {
         j = rand() % (N-2) + 1;
         i = rand() % (N-2) + 1;
         if (i == j) {
@@ -58,8 +65,8 @@ void alloc_and_fill_tab(Point* tab[]) {
     for(i=0;i<N;++i) {
         tab[i] = malloc(sizeof(Point));
         tab[i]->id = i;
-        tab[i]->lat = random_double(48.3, 49.2);
-        tab[i]->lon = random_double(2.8, .9);
+        tab[i]->lat = random_double(0, 50);
+        tab[i]->lon = random_double(0, 50);
     }
     tab[N-1] = tab[0];
 }
@@ -154,7 +161,7 @@ void init_children(TabScore* tab[], int size, Point* tab_points[]) {
     int i;
     for (i = 0; i < size; i++) {
         tab[i] = create_tab_score_from_points(tab_points);
-        permute_tab(tab[i]->tab);
+        permute_tab(tab[i]->tab, N*80);
         tab[i]->score = scoring(tab[i]->tab, N);
     }
 }
@@ -222,51 +229,62 @@ void copy_children_to_parents(TabScore* parents[], TabScore* children[], int max
 int main() {
     srand(time(NULL));
 
+    create_windows();
+
     Point* tab1[N];
     int child[N];
 
     alloc_and_fill_tab(tab1);
     fill_matrix(tab1);
 
-    TabScore* parents[1000];
-    init_children(parents, 1000, tab1);
-    quick_sort_children(parents, 0, 999);
-    TabScore* childs[1000];
-    int best_scores[1000];
-    double mean_scores[1000];
+    TabScore* parents[NB_INDIVIDU];
+    init_children(parents, NB_INDIVIDU, tab1);
+    quick_sort_children(parents, 0, NB_INDIVIDU-1);
+    TabScore* childs[NB_INDIVIDU];
 
 
     int s;
-    int nb_gen = 10;
+    int nb_gen = 1000;
     print_points_from_array(parents[0]->tab, tab1);
+    clear_window();
+    show_path(tab1, parents[0]->tab);
 
     for(s=0;s<nb_gen;++s) {
 
         int i;
         TabScore* parent1;
         TabScore* parent2;
-        for(i=0;i < 1000;++i) {
+
+        for(i=0;i < NB_INDIVIDU*PERCENT_KEEP/100;++i) {
+            childs[i] = create_tab_score_from_int(parents[i]->tab);
+        }
+        for(;i < NB_INDIVIDU*PERCENT_KEEP/100 + NB_INDIVIDU*PERCENT_MUTATE/100;++i) {
+            childs[i] = create_tab_score_from_int(parents[i]->tab);
+            permute_tab(childs[i]->tab, N/10);
+            childs[i]->score = scoring(childs[i]->tab, N);
+        }
+        for(;i < NB_INDIVIDU*PERCENT_KEEP/100 + NB_INDIVIDU*PERCENT_MUTATE/100 + NB_INDIVIDU*PERCENT_CROSSOVER/100;++i) {
             get_2_random_parents(parents, &parent1, &parent2, 300);
             order_crossover(parent1->tab, parent2->tab, child);
-
             childs[i] = create_tab_score_from_int(child);
         }
+        for(;i < NB_INDIVIDU*PERCENT_KEEP/100 + NB_INDIVIDU*PERCENT_MUTATE/100 + NB_INDIVIDU*PERCENT_CROSSOVER/100 + NB_INDIVIDU*PERCENT_NEW/100;++i) {
+            childs[i] = create_tab_score_from_points(tab1);
+            permute_tab(childs[i]->tab, N*10);
+            childs[i]->score = scoring(childs[i]->tab, N);
+        }
 
-        quick_sort_children(childs, 0, 999);
-        printf("100 premiers enfants triés : \n");
+        quick_sort_children(childs, 0, NB_INDIVIDU-1);
+        /*printf("100 premiers enfants triés : \n");
         for(i=0;i<100;++i) {
             print_array(childs[i]->tab);
-        }
-        best_scores[s] = childs[0]->score;
-        mean_scores[s] = 0;
-        for(i=0;i<1000;++i) {
-            mean_scores[s] += childs[i]->score;
-        }
-        mean_scores[s] /= 1000;
-        copy_children_to_parents(parents, childs, 1000);
+        }*/
+        copy_children_to_parents(parents, childs, NB_INDIVIDU);
+        clear_window();
+        show_path(tab1, parents[0]->tab);
+        printf("Generation %d : Best score: %f\n", s , parents[0]->score);
     }
-    printf("premier meilleur score: %d, dernier meilleur score: %d\n", best_scores[0], best_scores[nb_gen-1]);
-    printf("Premier score: %f, dernier score: %f\n", mean_scores[0], mean_scores[nb_gen-1]);
+    printf("Best score: %f\n", parents[0]->score);
     print_points_from_array(parents[0]->tab, tab1);
 
     print_matrix();
