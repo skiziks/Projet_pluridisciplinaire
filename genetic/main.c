@@ -5,36 +5,36 @@
 #include <MLV/MLV_all.h>
 #include "interface.h"
 
-#define NB_INDIVIDU 10000
+#define NB_INDIVIDU 20000
 
-#define PERCENT_KEEP_PHASE1 1
+#define PERCENT_KEEP_PHASE1 5
 #define IND_KEEP1 (NB_INDIVIDU*PERCENT_KEEP_PHASE1/100)
 #define PERCENT_MUTATE_PHASE1 15
 #define IND_MUTATE1 (NB_INDIVIDU*PERCENT_MUTATE_PHASE1/100 + IND_KEEP1)
-#define PERCENT_CROSSOVER_PHASE1 29
+#define PERCENT_CROSSOVER_PHASE1 25
 #define IND_CROSSOVER1 (NB_INDIVIDU*PERCENT_CROSSOVER_PHASE1/100 + IND_MUTATE1)
 #define PERCENT_NEW_PHASE1 55
 #define IND_NEW1 (NB_INDIVIDU*PERCENT_NEW_PHASE1/100 + IND_CROSSOVER1)
 
-#define PERCENT_KEEP_PHASE2 1
+#define PERCENT_KEEP_PHASE2 5
 #define IND_KEEP2 (NB_INDIVIDU*PERCENT_KEEP_PHASE2/100)
-#define PERCENT_MUTATE_PHASE2 35
+#define PERCENT_MUTATE_PHASE2 30
 #define IND_MUTATE2 (NB_INDIVIDU*PERCENT_MUTATE_PHASE2/100 + IND_KEEP2)
-#define PERCENT_CROSSOVER_PHASE2 44
+#define PERCENT_CROSSOVER_PHASE2 45
 #define IND_CROSSOVER2 (NB_INDIVIDU*PERCENT_CROSSOVER_PHASE2/100 + IND_MUTATE2)
 #define PERCENT_NEW_PHASE2 20
 #define IND_NEW2 (NB_INDIVIDU*PERCENT_NEW_PHASE2/100 + IND_CROSSOVER2)
 
-#define PERCENT_KEEP_PHASE3 1
+#define PERCENT_KEEP_PHASE3 5
 #define IND_KEEP3 (NB_INDIVIDU*PERCENT_KEEP_PHASE3/100)
-#define PERCENT_MUTATE_PHASE3 49
+#define PERCENT_MUTATE_PHASE3 30
 #define IND_MUTATE3 (NB_INDIVIDU*PERCENT_MUTATE_PHASE3/100 + IND_KEEP3)
-#define PERCENT_CROSSOVER_PHASE3 50
+#define PERCENT_CROSSOVER_PHASE3 60
 #define IND_CROSSOVER3 (NB_INDIVIDU*PERCENT_CROSSOVER_PHASE3/100 + IND_MUTATE3)
-#define PERCENT_NEW_PHASE3 0
+#define PERCENT_NEW_PHASE3 5
 #define IND_NEW3 (NB_INDIVIDU*PERCENT_NEW_PHASE3/100 + IND_CROSSOVER3)
 
-#define PHASE2_GEN N
+#define PHASE2_GEN N/2
 #define PHASE3_GEN N*4
 
 #define IND_KEEP (s < PHASE2_GEN ? IND_KEEP1 : (s < PHASE3_GEN ? IND_KEEP2 : IND_KEEP3))
@@ -52,6 +52,20 @@ double random_double(double min, double max) {
     return min + (rand() / (RAND_MAX / (max - min)));
 }
 
+void init_random_tab(int tab[]) {
+    int i;
+    tab[N-1] = 0;
+    for(i=0;i<N-1;++i) {
+        tab[i] = i;
+    }
+    for(i=1;i<N-1;++i) {
+        int j = rand() % (N-2) + 1;
+        int temp = tab[i];
+        tab[i] = tab[j];
+        tab[j] = temp;
+    }
+}
+
 void permute_tab(int tab[], int nb_permut){
     int n, i, j, temp;
     for(n=0;n<nb_permut;++n) {
@@ -63,6 +77,57 @@ void permute_tab(int tab[], int nb_permut){
         temp = tab[i];
         tab[i] = tab[j];
         tab[j] = temp;
+    }
+}
+
+void move_in_tab(int tab[]) {
+    int i = rand() % (N-2) +1;
+    int j = rand() % (N-2) +1;
+    if (i == j) return;
+
+    int city = tab[i];
+
+    if (i < j) {
+        memmove(&tab[i], &tab[i+1], (j - i) * sizeof(int)); /*memmove: Astuce du C pour déplacer une partie d'un tableau, ça reste O(n)*/
+        tab[j] = city;
+    } else {
+        memmove(&tab[j+1], &tab[j], (i - j) * sizeof(int));
+        tab[j] = city;
+    }
+}
+
+void reverse_segment(int tab[], int i, int j) {
+    while (i < j) {
+        int temp = tab[i];
+        tab[i] = tab[j];
+        tab[j] = temp;
+        i++;
+        j--;
+    }
+}
+
+/*Effectue une mutation en inversant un segment*/
+void two_opt(int tab[]) {
+    int i = rand() % (N-2) + 1;
+    int j = rand() % (N-2) + 1;
+    if (i == j) return;
+
+    if (i > j) {
+        reverse_segment(tab, j, i);
+    } else {
+        reverse_segment(tab, i, j);
+    }
+}
+
+void mutate(int tab[]) {
+    int r = rand() % 100;
+
+    if (r < 60) {
+        permute_tab(tab, r % 5 + 1);
+    } else if (r < 85) {
+        move_in_tab(tab);
+    } else {
+        two_opt(tab);
     }
 }
 
@@ -170,8 +235,8 @@ void order_crossover(int parent1[], int parent2[], int child[]) {
         j++;
     }
 
-    /*Mutate the child twice*/
-    permute_tab(child, 2);
+    /*Mutate the child*/
+    mutate(child);
 
 }
 
@@ -199,7 +264,7 @@ void init_children(TabScore* tab[], int size, Point* tab_points[]) {
     int i;
     for (i = 0; i < size; i++) {
         tab[i] = create_tab_score_from_points(tab_points);
-        permute_tab(tab[i]->tab, N*80);
+        init_random_tab(tab[i]->tab);
         tab[i]->score = scoring(tab[i]->tab, N);
     }
 }
@@ -292,7 +357,7 @@ int main() {
         /*Mutate*/
         for(;i < IND_MUTATE;++i) {
             childs[i] = create_tab_score_from_int(parents[i%(PERCENT_REPRODUCTION * N / 100)]->tab);
-            permute_tab(childs[i]->tab, N*5/(s+1) + 2); /*We don't want to much mutation by the end, sometimes just 2 is enough*/
+            mutate(childs[i]->tab);
             childs[i]->score = scoring(childs[i]->tab, N);
         }
         /*Crossover*/
@@ -304,7 +369,7 @@ int main() {
         /*New*/
         for(;i < IND_NEW;++i) {
             childs[i] = create_tab_score_from_points(tab1);
-            permute_tab(childs[i]->tab, N*10);
+            init_random_tab(childs[i]->tab);
             childs[i]->score = scoring(childs[i]->tab, N);
         }
 
@@ -315,7 +380,7 @@ int main() {
         }*/
         copy_children_to_parents(parents, childs, NB_INDIVIDU);
         clear_window();
-        for(i=50;i>=0;--i) {
+        for(i=255;i>=0;i -= 5) {
             show_path(tab1, parents[i]->tab, MLV_rgba(255-i, 255-i, 255-i, 255), i==0);
         }
         actualise_window();
