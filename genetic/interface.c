@@ -32,17 +32,21 @@ void pause_keyboard(void){
   MLV_wait_keyboard(NULL, NULL, NULL);
 }
 
-void show_path(Point* tab[], int tab_points[], MLV_Color color, int with_circle) {
+void show_path(Point* tab[], int tab_points[], MLV_Color color[], int nb_colors, int with_circle) {
   int i;
+  int camion = 0;
   for(i=1;i<N;++i) {
     Point* point = tab[tab_points[i]];
+    if (point->id == 0 && i != 0 && i != N-1) {
+      camion++;
+    }
     if (with_circle) {
       MLV_draw_filled_circle(BASE_X + point->lat * 10, BASE_Y + point->lon * 10, 5, point->id?MLV_rgba(255,0,0,255):MLV_rgba(0,255,0,255));
     }
     
       MLV_draw_line(BASE_X + tab[tab_points[i-1]]->lat * 10, BASE_Y + tab[tab_points[i-1]]->lon * 10,
                   BASE_X + point->lat * 10, BASE_Y + point->lon * 10,
-                  color);
+                  color[camion%nb_colors]);
   }
   /*actualise_window();*/
   /*pause_action();*/

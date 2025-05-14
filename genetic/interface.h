@@ -9,7 +9,7 @@
 
 #define WAIT_TIME_MILLISEC 500
 
-#define N 80 
+#define N 81 
 
 typedef struct _point {
     int id;
@@ -29,6 +29,6 @@ void actualise_window(void);
 void pause_keyboard(void);
 void clear_window(void);
 void pause_action(void);
-void show_path(Point* tab[], int tab_points[], MLV_Color color, int with_circle);
+void show_path(Point* tab[], int tab_points[], MLV_Color color[], int nb_colors, int with_circle);
 
 #endif

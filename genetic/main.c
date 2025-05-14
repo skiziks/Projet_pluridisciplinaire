@@ -34,8 +34,8 @@
 #define PERCENT_NEW_PHASE3 5
 #define IND_NEW3 (NB_INDIVIDU*PERCENT_NEW_PHASE3/100 + IND_CROSSOVER3)
 
-#define PHASE2_GEN N/2
-#define PHASE3_GEN N*4
+#define PHASE2_GEN 0
+#define PHASE3_GEN 1000
 
 #define IND_KEEP (s < PHASE2_GEN ? IND_KEEP1 : (s < PHASE3_GEN ? IND_KEEP2 : IND_KEEP3))
 #define IND_MUTATE (s < PHASE2_GEN ? IND_MUTATE1 : (s < PHASE3_GEN ? IND_MUTATE2 : IND_MUTATE3))
@@ -55,7 +55,8 @@ double random_double(double min, double max) {
 void init_random_tab(int tab[]) {
     int i;
     tab[N-1] = 0;
-    for(i=0;i<N-1;++i) {
+    tab[N-2] = 0;
+    for(i=0;i<N-2;++i) {
         tab[i] = i;
     }
     for(i=1;i<N-1;++i) {
@@ -122,9 +123,9 @@ void two_opt(int tab[]) {
 void mutate(int tab[]) {
     int r = rand() % 100;
 
-    if (r < 60) {
+    if (r < 50) {
         permute_tab(tab, r % 5 + 1);
-    } else if (r < 85) {
+    } else if (r < 75) {
         move_in_tab(tab);
     } else {
         two_opt(tab);
@@ -173,9 +174,18 @@ void alloc_and_fill_tab(Point* tab[]) {
 double scoring(int tab[], int taille) {
     int i;
     double score = 0;
+    int camion;
     for(i=0;i<taille-1;++i) {
+        if (tab[i] == 0 && i != 0 && i != taille-1) {
+            camion = i;
+        }
         score += distance(tab[i], tab[i+1])*1000;
     }
+
+    if (camion < N/4 || camion > 3*N/4) {
+        score += 1000000;
+    }
+
     return score;
 }
 
@@ -205,11 +215,11 @@ void free_tab_score(TabScore* ts) {
 
 void order_crossover(int parent1[], int parent2[], int child[]) {
     int start, end, i, j, k;
-    int used[N] = {0};
+    int used[N-1] = {0};
 
     child[0] = 0;
     child[N-1] = 0;
-    used[0] = 1;
+    /*used[0] = 1;*/
 
     start = rand() % (N-2) + 1;
     end = rand() % (N-2) + 1;
@@ -223,6 +233,7 @@ void order_crossover(int parent1[], int parent2[], int child[]) {
     j = 1; 
     k = 1;  
     while (k < N-1) {
+        
         if (k >= start && k <= end) {
             k = end + 1; 
             continue;
@@ -234,10 +245,8 @@ void order_crossover(int parent1[], int parent2[], int child[]) {
         }
         j++;
     }
-
     /*Mutate the child*/
     mutate(child);
-
 }
 
 void quick_sort_children(TabScore* tab[], int start, int end) {
@@ -329,6 +338,7 @@ int main() {
 
     Point* tab1[N];
     int child[N];
+    MLV_Color colors[2];
 
     alloc_and_fill_tab(tab1);
     fill_matrix(tab1);
@@ -381,7 +391,9 @@ int main() {
         copy_children_to_parents(parents, childs, NB_INDIVIDU);
         clear_window();
         for(i=255;i>=0;i -= 5) {
-            show_path(tab1, parents[i]->tab, MLV_rgba(255-i, 255-i, 255-i, 255), i==0);
+            colors[0] = MLV_rgba(255-i, 128-(i/2), 128-(i/2), 255);
+            colors[1] = MLV_rgba(128-(i/2), 128-(i/2), 255-i, 255);
+            show_path(tab1, parents[i]->tab, colors, 2, i==0);
         }
         actualise_window();
         printf("Generation %d : Best score: %f Median: %f\n", s , parents[0]->score, parents[NB_INDIVIDU/2]->score);
@@ -396,7 +408,9 @@ int main() {
     actualise_window();
     clear_window();
     actualise_window();
-    show_path(tab1, parents[0]->tab, MLV_rgba(255, 255, 255, 255), 1);
+    colors[0] = MLV_rgba(255, 128, 128, 255);
+    colors[1] = MLV_rgba(128, 128, 255, 255);
+    show_path(tab1, parents[0]->tab, colors, 2, 1);
     actualise_window();
 
     pause_keyboard();
