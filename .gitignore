@@ -1,8 +1,5 @@
 
 /.vscode
-genetic/main
-genetic/main.o
 genetic/genetic
-genetic/genetic.o
-genetic/interface.o
+genetic/*.o
 /genetic/.vscode

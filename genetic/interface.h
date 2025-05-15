@@ -2,6 +2,8 @@
 #define _INTERFACE_
 
 #include <MLV/MLV_all.h>
+#include "matrix.h"
+#include "genetic_utils.h"
 
 #define HEIGHT_WINDOWS_PIX 600
 #define WIDTH_WINDOWS_PIX 800
@@ -9,19 +11,7 @@
 
 #define WAIT_TIME_MILLISEC 500
 
-#define N 81 
 
-typedef struct _point {
-    int id;
-    double lat;
-    double lon;
-} Point;
-
-/*Struct qui représente un tableau et son scoring*/
-typedef struct _tabscore {
-    int tab[N];
-    double score;
-} TabScore;
 
 void create_windows(void);
 void free_windows(void);
