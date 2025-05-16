@@ -31,7 +31,7 @@ int main() {
 
     Point* tab1[N];
     int child[N];
-    MLV_Color colors[2];
+    MLV_Color colors[10];
 
     alloc_and_fill_tab(tab1);
     fill_matrix(tab1, matrix);
@@ -103,7 +103,15 @@ int main() {
     actualise_window();
     colors[0] = MLV_rgba(255, 128, 128, 255);
     colors[1] = MLV_rgba(128, 128, 255, 255);
-    show_path(tab1, parents[0]->tab, colors, 2, 1);
+    colors[2] = MLV_rgba(128, 255, 128, 255);
+    colors[3] = MLV_rgba(255, 255, 128, 255);
+    colors[4] = MLV_rgba(255, 128, 255, 255);
+    colors[5] = MLV_rgba(128, 255, 255, 255);
+    colors[6] = MLV_rgba(255, 255, 255, 255);
+    colors[7] = MLV_rgba(255, 128, 0, 255);
+    colors[8] = MLV_rgba(128, 255, 0, 255);
+    colors[9] = MLV_rgba(0, 255, 128, 255);
+    show_path(tab1, parents[0]->tab, colors, 10, 1);
     actualise_window();
 
     pause_keyboard();
