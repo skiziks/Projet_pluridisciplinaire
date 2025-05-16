@@ -10,16 +10,29 @@
 
 #define PERCENT_KEEP 5
 #define IND_KEEP (NB_INDIVIDU*PERCENT_KEEP/100)
-#define PERCENT_MUTATE 25
+#define PERCENT_MUTATE 23
 #define IND_MUTATE (NB_INDIVIDU*PERCENT_MUTATE/100 + IND_KEEP)
-#define PERCENT_CROSSOVER 40
+#define PERCENT_CROSSOVER 39
 #define IND_CROSSOVER (NB_INDIVIDU*PERCENT_CROSSOVER/100 + IND_MUTATE)
-#define PERCENT_NEW 30
+#define PERCENT_NEW 33
 #define IND_NEW (NB_INDIVIDU*PERCENT_NEW/100 + IND_CROSSOVER)
 
 
 
 double matrix[N][N];
+
+void fill_color_10(MLV_Color colors[], int i) {
+    colors[0] = MLV_rgba(255-i, 0, 0, 255);
+    colors[1] = MLV_rgba(0, 0, 255-i, 255);
+    colors[2] = MLV_rgba(0, 255-i, 0, 255);
+    colors[3] = MLV_rgba(255-i, 255-i, 0, 255);
+    colors[4] = MLV_rgba(255-i, 0, 255-i, 255);
+    colors[5] = MLV_rgba(0, 255-i, 255-i, 255);
+    colors[6] = MLV_rgba(255-i, 255-i, 255-i, 255);
+    colors[7] = MLV_rgba(255-i, 128-i/2, 128, 255);
+    colors[8] = MLV_rgba(128-i/2, 255-i, 70, 255);
+    colors[9] = MLV_rgba(0, 255-i, 128-i/2, 255);
+}
 
 
 
@@ -29,13 +42,11 @@ int main() {
 
     create_windows();
 
-    Point* tab1[N];
-    int child[N];
+    Point* tab1[N + NB_TRUCKS_MAX + 1];
+    int child[N + NB_TRUCKS_MAX + 1];
     MLV_Color colors[10];
-
     alloc_and_fill_tab(tab1);
     fill_matrix(tab1, matrix);
-
     TabScore* parents[NB_INDIVIDU];
     init_children(parents, NB_INDIVIDU, tab1, matrix);
     quick_sort_children(parents, 0, NB_INDIVIDU-1);
@@ -59,7 +70,7 @@ int main() {
         }
         /*Mutate*/
         for(;i < IND_MUTATE;++i) {
-            childs[i] = create_tab_score_from_int(parents[i%(PERCENT_REPRODUCTION * N / 100)]->tab, matrix);
+            childs[i] = create_tab_score_from_int(parents[i%(PERCENT_REPRODUCTION * NB_INDIVIDU / 100)]->tab, matrix);
             mutate(childs[i]->tab);
             childs[i]->score = scoring(childs[i]->tab, matrix);
         }
@@ -77,17 +88,21 @@ int main() {
         }
 
         quick_sort_children(childs, 0, NB_INDIVIDU-1);
+        
         /*printf("100 premiers enfants triés : \n");
         for(i=0;i<100;++i) {
             print_array(childs[i]->tab, matrix);
         }*/
         copy_children_to_parents(parents, childs, NB_INDIVIDU);
-        clear_window();
-        for(i=255;i>=0;i -= 5) {
-            colors[0] = MLV_rgba(255-i, 128-(i/2), 128-(i/2), 255);
-            colors[1] = MLV_rgba(128-(i/2), 128-(i/2), 255-i, 255);
-            show_path(tab1, parents[i]->tab, colors, 2, i==0);
+        
+        if(s % 30 == 0) {
+            clear_window();
+            for(i=255;i>=0;i -= 5) {
+                fill_color_10(colors, i);
+                show_path(tab1, parents[i]->tab, colors, 10, i==0);
+            }
         }
+        
         actualise_window();
         printf("Generation %d : Best score: %f Median: %f\n", s , parents[0]->score, parents[NB_INDIVIDU/2]->score);
         
@@ -97,20 +112,11 @@ int main() {
     printf("Median : %f\n", parents[NB_INDIVIDU/2]->score);
     print_points_from_array(parents[0]->tab, tab1);
 
-    print_matrix(matrix);
+    print_array_simple(parents[0]->tab);
     actualise_window();
     clear_window();
     actualise_window();
-    colors[0] = MLV_rgba(255, 128, 128, 255);
-    colors[1] = MLV_rgba(128, 128, 255, 255);
-    colors[2] = MLV_rgba(128, 255, 128, 255);
-    colors[3] = MLV_rgba(255, 255, 128, 255);
-    colors[4] = MLV_rgba(255, 128, 255, 255);
-    colors[5] = MLV_rgba(128, 255, 255, 255);
-    colors[6] = MLV_rgba(255, 255, 255, 255);
-    colors[7] = MLV_rgba(255, 128, 0, 255);
-    colors[8] = MLV_rgba(128, 255, 0, 255);
-    colors[9] = MLV_rgba(0, 255, 128, 255);
+    fill_color_10(colors, 0);
     show_path(tab1, parents[0]->tab, colors, 10, 1);
     actualise_window();
 

@@ -2,7 +2,9 @@
 #define _MATRIX_
 #include <math.h>
 
-#define N 81 /* Number of points*/
+#define N 85 /* Number of points*/
+
+#define NB_TRUCKS_MAX 6
 
 typedef struct _point {
     int id;
@@ -47,6 +49,11 @@ void print_matrix(double matrix[][N]);
  * @param matrix matrice de distance
  */
 double distance(int first, int second, double matrix[][N]);
+
+/**
+ * * @brief Retourne 0 si value < 0, sinon retourne value
+ */
+int z(int value);
 
 double** get_distance_meters_matrix_from_file(char* path);
 int** get_time_seconds_matrix_from_file(char* path);
