@@ -1,0 +1,5 @@
+
+/.vscode
+genetic/genetic
+genetic/*.o
+/genetic/.vscode
