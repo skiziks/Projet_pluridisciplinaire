@@ -8,9 +8,11 @@
 
 #define NB_INDIVIDU 20000
 
-#define PERCENT_KEEP 5
+#define PERCENT_REPRODUCTION 5
+
+#define PERCENT_KEEP 3
 #define IND_KEEP (NB_INDIVIDU*PERCENT_KEEP/100)
-#define PERCENT_MUTATE 23
+#define PERCENT_MUTATE 25
 #define IND_MUTATE (NB_INDIVIDU*PERCENT_MUTATE/100 + IND_KEEP)
 #define PERCENT_CROSSOVER 39
 #define IND_CROSSOVER (NB_INDIVIDU*PERCENT_CROSSOVER/100 + IND_MUTATE)
@@ -54,7 +56,7 @@ int main() {
 
 
     int s;
-    int nb_gen = 1000;
+    int nb_gen = 2000;
     print_points_from_array(parents[0]->tab, tab1);
     clear_window();
 
@@ -76,7 +78,7 @@ int main() {
         }
         /*Crossover*/
         for(;i < IND_CROSSOVER;++i) {
-            get_2_random_parents(parents, &parent1, &parent2, 300, matrix);
+            get_2_random_parents(parents, &parent1, &parent2, (PERCENT_REPRODUCTION * NB_INDIVIDU / 100), matrix);
             order_crossover(parent1->tab, parent2->tab, child);
             childs[i] = create_tab_score_from_int(child, matrix);
         }

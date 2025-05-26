@@ -3,8 +3,6 @@
 
 #include "matrix.h"
 
-#define PERCENT_REPRODUCTION 30
-
 
 /*Struct qui représente un tableau et son scoring*/
 typedef struct _tabscore {

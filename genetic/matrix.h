@@ -4,7 +4,7 @@
 
 #define N 85 /* Number of points*/
 
-#define NB_TRUCKS_MAX 6
+#define NB_TRUCKS_MAX 10
 
 typedef struct _point {
     int id;

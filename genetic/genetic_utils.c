@@ -80,7 +80,7 @@ void mutate(int tab[]) {
 
     if (r < 50) {
         permute_tab(tab, r % 5 + 1);
-    } else if (r < 80) {
+    } else if (r < 75) {
         move_in_tab(tab);
     } else {
         two_opt(tab);
@@ -104,7 +104,7 @@ double scoring(int tab[], double matrix[][N]) {
         int dist = distance(tab[i], tab[i+1], matrix)*1000;
         score += dist/* < 0.1 ? 1000000 : dist forcing exact number of trucks*/;
     }
-    if(camion > N/NB_TRUCKS_MAX*1.5) {
+    if(camion > N/NB_TRUCKS_MAX*2) {
                 score += 1000000;
             }
     
@@ -158,7 +158,7 @@ void order_crossover(int parent1[], int parent2[], int child[]) {
     if (start > end) { int temp = start; start = end; end = temp; }
     for (i = start; i <= end; i++) {
         child[i] = parent1[i];
-        used[parent1[i]+NB_TRUCKS_MAX] = 1;
+        used[parent1[i]+NB_TRUCKS_MAX-1] = 1;
     }
 
     j = 1; 
@@ -169,9 +169,9 @@ void order_crossover(int parent1[], int parent2[], int child[]) {
             k = end + 1; 
             continue;
         }
-        if (!used[parent2[j]+NB_TRUCKS_MAX]) {
+        if (!used[parent2[j]+NB_TRUCKS_MAX-1]) {
             child[k] = parent2[j];
-            used[parent2[j]+NB_TRUCKS_MAX] = 1;
+            used[parent2[j]+NB_TRUCKS_MAX-1] = 1;
             k++;
         }
         j++;
@@ -222,8 +222,8 @@ void get_2_random_parents(TabScore* parents[], TabScore** parent1, TabScore** pa
     int i, j;
 
 
-    double r1 = ((double)rand() / RAND_MAX) * max * PERCENT_REPRODUCTION / 100;
-    double r2 = ((double)rand() / RAND_MAX) * max * PERCENT_REPRODUCTION / 100;
+    double r1 = ((double)rand() / RAND_MAX) * max;
+    double r2 = ((double)rand() / RAND_MAX) * max;
     i = (int)r1;
     j = (int)r2;
 
