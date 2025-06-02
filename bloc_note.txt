@@ -1,0 +1,3 @@
+# Un CSV matrice pour le temps de chaque trajet
+# Un CSV matrice pour la distance de chaque trajet
+# Un CSV a 2 colonnes avec autant de ligne de pharmacie avec les long et lat

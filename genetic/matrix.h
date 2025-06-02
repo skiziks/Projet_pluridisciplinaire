@@ -57,6 +57,4 @@ int z(int value);
 
 double** get_distance_meters_matrix_from_file(char* path);
 int** get_time_seconds_matrix_from_file(char* path);
-
-
 #endif
