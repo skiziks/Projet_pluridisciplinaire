@@ -4,18 +4,17 @@
 #include "matrix.h"
 
 
-#define PERCENT_REPRODUCTION 30
-
-
 /*Struct qui représente un tableau et son scoring*/
 typedef struct _tabscore {
-    int tab[N];
+    int tab[N+NB_TRUCKS_MAX+1];
     double score;
 } TabScore;
 
+void print_array_simple(int arr[]);
+
 /**
  * * @brief Crée un tableau de score à partir d'un tableau des id des points de taille N
- * @param tab tableau de points de taille N
+ * @param tab tableau de points de taille N + NB_TRUCKS_MAX
  * @param matrix matrice de distance entre les points
  */
 TabScore* create_tab_score_from_int(int tab[], double matrix[][N]);
@@ -23,7 +22,7 @@ TabScore* create_tab_score_from_int(int tab[], double matrix[][N]);
 
 /**
  * @brief Crée un tableau de score à partir d'un tableau de points de taille N
- * @param tab_points tableau de points de taille N
+ * @param tab_points tableau de points de taille N + NB_TRUCKS_MAX
  * @param matrix matrice de distance entre les points
  */
 TabScore* create_tab_score_from_points(Point* tab_points[], double matrix[][N]);
@@ -37,26 +36,26 @@ void free_tab_score(TabScore* ts);
  * @brief Initialise des tableaux de score à partir de permutations aléatoires des points de taille N
  * @param tab tableau de score de taille nb_individu
  * @param nb_individu nombre d'individus
- * @param tab_points tableau de points de taille N
+ * @param tab_points tableau de points de taille N + NB_TRUCKS_MAX
  * @param matrix matrice de distance entre les points
  */
 void init_children(TabScore* tab[], int nb_individu, Point* tab_points[], double matrix[][N]);
 
 /**
  * @brief Initialise le tableau de taille N avec une permutation aléatoire d'une route
- * @param tab tableau de taille N
+ * @param tab tableau de taille N + NB_TRUCKS_MAX
  */
 void init_random_tab(int tab[]);
 
 /**
- * @brief Effectue une de ces 3 mutations aléatoirement: Random swap (50%), décalage (25%), random segment inversion (25%)
- * @param tab tableau de taille N
+ * @brief Effectue une de ces 3 mutations aléatoirement: Random swap (50%), décalage (20%), random segment inversion (20%)
+ * @param tab tableau de taille N + NB_TRUCKS_MAX
  */
 void mutate(int tab[]);
 
 /**
  * @brief Choisi aléatoirement 2 parents parmi les `max` premiers individus
- * @param parents tableau de score de taille max ou plus (N)
+ * @param parents tableau de score de taille max ou plus (NB_INDIVIDU)
  * @param[out] parent1 pointeur vers le premier parent
  * @param[out] parent2 pointeur vers le deuxième parent
  * @param max
@@ -74,7 +73,7 @@ void quick_sort_children(TabScore* tab[], int start, int end);
 
 /**
  * @brief Calcule le score (fitness) d'un individu
- * @param tab tableau de taille N
+ * @param tab tableau de taille N + NB_TRUCKS_MAX
  * @param matrix matrice de distance entre les points
  * @return score de l'individu
  */
@@ -88,7 +87,7 @@ void print_array(int arr[], double matrix[][N]);
 
 /**
  * @brief Compte le nombre d'individus ayant le même score que le premier
- * @param parents tableau de score de taille max ou plus (N)
+ * @param parents tableau de score de taille max ou plus (NB_INDIVIDU)
  * @param max taille du tableau
  * @return nombre d'individus ayant le même score que le premier
  */

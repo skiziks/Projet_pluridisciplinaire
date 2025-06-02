@@ -3,6 +3,13 @@
 #include <stdlib.h>
 #include "matrix.h"
 
+
+/**
+ * * @brief Retourne 0 si value < 0, sinon retourne value
+ */
+int z(int value) {
+    return value < 0 ? 0 : value;
+}
 double random_double(double min, double max) {
     return min + (rand() / (RAND_MAX / (max - min)));
 }
@@ -10,7 +17,7 @@ double random_double(double min, double max) {
 void print_points_from_array(int arr[], Point* points[]) {
     int i;
     for (i = 0; i < N; i++) {
-        printf("(%f, %f) ", points[arr[i]]->lat, points[arr[i]]->lon);
+        printf("(%f, %f) ", points[z(arr[i])]->lat, points[z(arr[i])]->lon);
     }
     printf("\n");
 }
@@ -24,7 +31,10 @@ void alloc_and_fill_tab(Point* tab[]) {
         tab[i]->lat = random_double(0, 50);
         tab[i]->lon = random_double(0, 50);
     }
-    tab[N-1] = tab[0];
+    
+    for(i=N;i<N+NB_TRUCKS_MAX+1;++i) {
+        tab[i] = tab[0];
+    }
 }
 
 double calc_dist(Point* first, Point* second) {
@@ -41,5 +51,5 @@ void fill_matrix(Point* tab[], double matrix[][N]) {
 }
 
 double distance(int first, int second, double matrix[][N]) {
-    return matrix[first][second];
+    return matrix[z(first)][z(second)];
 }

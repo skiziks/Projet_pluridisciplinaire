@@ -7,7 +7,7 @@ all : genetic
 genetic : main.o interface.o genetic_utils.o matrix.o
 	gcc -o genetic main.o interface.o genetic_utils.o matrix.o $(FLAGS) $(LDFLAGS) $(LDLIBS) 
 
-main.o: main.c interface.h
+main.o: main.c interface.h matrix.h matrix.c
 	gcc -c main.c $(FLAGS) $(LDLIBS) 
 
 interface.o: interface.c interface.h genetic_utils.h matrix.h genetic_utils.c matrix.c
