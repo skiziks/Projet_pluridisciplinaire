@@ -4,10 +4,10 @@ LDLIBS = `pkg-config --libs-only-l MLV`
 
 all : genetic
 
-genetic : main.o interface.o genetic_utils.o matrix.o input.o
-	gcc -o genetic main.o interface.o genetic_utils.o matrix.o input.o $(FLAGS) $(LDFLAGS) $(LDLIBS) 
+genetic : main.o interface.o genetic_utils.o matrix.o input.o output.o
+	gcc -o genetic main.o interface.o genetic_utils.o matrix.o input.o output.o $(FLAGS) $(LDFLAGS) $(LDLIBS) 
 
-main.o: main.c interface.h matrix.h matrix.c input.h genetic_utils.h input.c
+main.o: main.c interface.h matrix.h matrix.c input.h genetic_utils.h input.c output.h output.c
 	gcc -c main.c $(FLAGS) $(LDLIBS) 
 
 interface.o: interface.c interface.h genetic_utils.h matrix.h genetic_utils.c matrix.c
@@ -21,6 +21,9 @@ matrix.o: matrix.c matrix.h
 
 input.o: input.c input.h
 	gcc -c input.c $(FLAGS) $(LDLIBS)
+
+output.o: output.c output.h
+	gcc -c output.c $(FLAGS) $(LDLIBS)
 
 clean:
 	rm -f *.o

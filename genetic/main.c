@@ -6,6 +6,7 @@
 #include "interface.h"
 #include "matrix.h"
 #include "input.h"
+#include "output.h"
 
 #define NB_INDIVIDU 20000
 #define NB_ENVIRONMENTS 5
@@ -162,6 +163,11 @@ int main(int argc, char* argv[]) {
     printf("\n\nBest env : %d\n\n", min);
 
     print_info(environments[min][0], matrix, time_matrix, N);
+
+
+    const char *output_path = "../output.txt";
+    write_output_to_file(environments[min][0], matrix, time_matrix, N, output_path);
+    printf("Best environment's output written to %s\n", output_path);
 
     int i;
     for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
