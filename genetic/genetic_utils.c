@@ -8,7 +8,7 @@ int is_start(int id) {
     return id <= 0;
 }
 
-void init_random_tab(int tab[]) {
+void init_random_tab(int tab[], int N) {
     int i;
     tab[N + NB_TRUCKS_MAX] = 0;
     for(i=0;i<N + NB_TRUCKS_MAX;++i) {
@@ -22,7 +22,7 @@ void init_random_tab(int tab[]) {
     }
 }
 
-void permute_tab(int tab[], int nb_permut){
+void permute_tab(int tab[], int nb_permut, int N){
     int n, i, j, temp;
     for(n=0;n<nb_permut;++n) {
         j = rand() % (N-2 + NB_TRUCKS_MAX) + 1; /* %(N-2) + 1 to not exchange the start and finish*/
@@ -36,7 +36,7 @@ void permute_tab(int tab[], int nb_permut){
     }
 }
 
-void move_in_tab(int tab[]) {
+void move_in_tab(int tab[], int N) {
     int i = rand() % (N-1 + NB_TRUCKS_MAX) +1;
     int j = rand() % (N-1 + NB_TRUCKS_MAX) +1;
     if (i == j) return;
@@ -63,7 +63,7 @@ void reverse_segment(int tab[], int i, int j) {
 }
 
 /*Effectue une mutation en inversant un segment*/
-void two_opt(int tab[]) {
+void two_opt(int tab[], int N) {
     int i = rand() % (N-1 + NB_TRUCKS_MAX) + 1;
     int j = rand() % (N-1 + NB_TRUCKS_MAX) + 1;
     if (i == j) return;
@@ -75,69 +75,68 @@ void two_opt(int tab[]) {
     }
 }
 
-void mutate(int tab[]) {
+void mutate(int tab[], int N) {
     int r = rand() % 100;
 
     if (r < 50) {
-        permute_tab(tab, r % 5 + 1);
+        permute_tab(tab, r % 5 + 1, N);
     } else if (r < 75) {
-        move_in_tab(tab);
+        move_in_tab(tab, N);
     } else {
-        two_opt(tab);
+        two_opt(tab, N);
     }
 }
 
 
-double scoring(int tab[], double matrix[][N]) {
+double scoring(int tab[], double **matrix, int N) {
     int i;
     double score = 0;
     int camion = 0;
     for(i=0;i<N + NB_TRUCKS_MAX;++i) {
-        
-        camion++;
         if (is_start(tab[i])) {
-            if(camion > N/NB_TRUCKS_MAX*1.5) {
-                score += 1000000;
-            }
             camion = 0;
         }
-        int dist = distance(tab[i], tab[i+1], matrix)*1000;
-        score += dist/* < 0.1 ? 1000000 : dist forcing exact number of trucks*/;
+        double dist = distance(tab[i], tab[i+1], matrix)/10.0;
+        score += dist;
+        camion += dist + 180;
+        if(camion > 3600*2.9) {
+            score += 10000000;
+        }
     }
-    if(camion > N/NB_TRUCKS_MAX*2) {
-                score += 1000000;
-            }
     
 
     return score;
 }
 
-TabScore* create_tab_score_from_int(int tab[], double matrix[][N]) {
+TabScore* create_tab_score_from_int(int tab[], double **matrix, int N) {
     TabScore* ts = malloc(sizeof(TabScore));
+    ts->tab = malloc((N + NB_TRUCKS_MAX + 1) * sizeof(int));
     int i;
     for(i = 0; i < N + NB_TRUCKS_MAX +1; i++) {
         ts->tab[i] = tab[i];
     }
-    ts->score = scoring(ts->tab, matrix);
+    ts->score = scoring(ts->tab, matrix, N);
     return ts;
 }
 
-TabScore* create_tab_score_from_points(Point* tab[], double matrix[][N]) {
+TabScore* create_tab_score_from_points(Point* tab[], double **matrix, int N) {
     TabScore* ts = malloc(sizeof(TabScore));
+    ts->tab = malloc((N + NB_TRUCKS_MAX + 1) * sizeof(int));
     int i;
     for(i = 0; i < N + NB_TRUCKS_MAX + 1; i++) {
         ts->tab[i] = tab[i]->id;
     }
-    ts->score = scoring(ts->tab, matrix);
+    ts->score = scoring(ts->tab, matrix, N);
     return ts;
 }
 
 void free_tab_score(TabScore* ts) {
+    free(ts->tab);
     free(ts);
 }
 
 
-void print_array_simple(int arr[]) {
+void print_array_simple(int arr[], int N) {
     int i;
     for (i = 0; i < N + NB_TRUCKS_MAX +1; i++) {
         printf("%d ", arr[i]);
@@ -145,9 +144,18 @@ void print_array_simple(int arr[]) {
     putchar('\n');
 }
 
-void order_crossover(int parent1[], int parent2[], int child[]) {
+int* alloc_array_zero(int size) {
+    int* arr = malloc(size * sizeof(int));
+    int i;
+    for(i = 0; i < size; i++) {
+        arr[i] = 0;
+    }
+    return arr;
+}
+
+void order_crossover(int parent1[], int parent2[], int child[], int N) {
     int start, end, i, j, k;
-    int used[N + NB_TRUCKS_MAX] = {0};
+    int* used = alloc_array_zero(N + NB_TRUCKS_MAX);
 
 
     child[0] = 0;
@@ -176,8 +184,10 @@ void order_crossover(int parent1[], int parent2[], int child[]) {
         }
         j++;
     }
+
+    free(used);
     /*Mutate the child*/
-    mutate(child);
+    mutate(child, N);
 }
 
 void quick_sort_children(TabScore* tab[], int start, int end) {
@@ -200,25 +210,25 @@ void quick_sort_children(TabScore* tab[], int start, int end) {
     quick_sort_children(tab, i+2, end);
 }
 
-void init_children(TabScore* tab[], int size, Point* tab_points[], double matrix[][N]) {
+void init_children(TabScore* tab[], int size, Point* tab_points[], double **matrix, int N) {
     int i;
     for (i = 0; i < size; i++) {
-        tab[i] = create_tab_score_from_points(tab_points, matrix);
-        init_random_tab(tab[i]->tab);
-        tab[i]->score = scoring(tab[i]->tab, matrix);
+        tab[i] = create_tab_score_from_points(tab_points, matrix, N);
+        init_random_tab(tab[i]->tab, N);
+        tab[i]->score = scoring(tab[i]->tab, matrix, N);
     }
 }
 
-void print_array(int arr[], double matrix[][N]) {
+void print_array(int arr[], double **matrix, int N) {
     int i;
     for (i = 0; i < N + NB_TRUCKS_MAX; i++) {
         printf("%d ", arr[i]);
     }
-    printf("Score: %f", scoring(arr, matrix));
+    printf("Score: %f", scoring(arr, matrix, N));
     printf("\n");
 }
 
-void get_2_random_parents(TabScore* parents[], TabScore** parent1, TabScore** parent2, int max, double matrix[][N]) {
+void get_2_random_parents(TabScore* parents[], TabScore** parent1, TabScore** parent2, int max, double **matrix, int N) {
     int i, j;
 
 

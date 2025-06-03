@@ -6,9 +6,9 @@
 
 #define MAX_LINE_LENGTH 1024 
 
-
+/*
 int main() {
-    /*
+    
     const char* distance_path = "../livraison85/matrice_distances_m.csv";
     const char* time_path = "../livraison85/matrice_durees_s.csv";
 
@@ -51,8 +51,8 @@ int main() {
     }
 
     return 0;
-    */
-}
+    
+}*/
 
 
 double** get_distance_meters_matrix_from_file(char* path) {
@@ -96,7 +96,7 @@ double** get_distance_meters_matrix_from_file(char* path) {
     return matrix;
 }
 
-int** get_time_seconds_matrix_from_file(char* path) {
+double** get_time_seconds_matrix_from_file(char* path) {
     FILE* file = fopen(path, "r");
     if (!file) {
         perror("Error opening file");
@@ -105,7 +105,7 @@ int** get_time_seconds_matrix_from_file(char* path) {
 
     int n = count_matrix_size(path);
 
-    int** matrix = malloc(n * sizeof(int*));
+    double** matrix = malloc(n * sizeof(double*));
     if (!matrix) {
         perror("Memory allocation failed");
         fclose(file);
@@ -113,7 +113,7 @@ int** get_time_seconds_matrix_from_file(char* path) {
     }
 
     for (int i = 0; i < n; i++) {
-        matrix[i] = malloc(n * sizeof(int));
+        matrix[i] = malloc(n * sizeof(double));
         if (!matrix[i]) {
             perror("Memory allocation failed");
             for (int j = 0; j < i; j++) free(matrix[j]);
@@ -123,7 +123,7 @@ int** get_time_seconds_matrix_from_file(char* path) {
         }
 
         for (int j = 0; j < n; j++) {
-            if (fscanf(file, "%d", &matrix[i][j]) != 1) {
+            if (fscanf(file, "%lf", &matrix[i][j]) != 1) {
                 perror("Invalid matrix data");
                 for (int k = 0; k <= i; k++) free(matrix[k]);
                 free(matrix);

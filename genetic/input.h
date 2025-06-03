@@ -6,7 +6,7 @@
 double** get_distance_meters_matrix_from_file(char* path);
 
 // Recupere une matrice d'entiers à partir d'un fichier
-int** get_time_seconds_matrix_from_file(char* path);
+double** get_time_seconds_matrix_from_file(char* path);
 
 // Recupere les coordonnées des pharmacies à partir d'un fichier, puis crée des points avec 
 Point** get_points_tab_from_file(char* path);

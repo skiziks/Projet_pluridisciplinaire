@@ -5,23 +5,21 @@
 #include <MLV/MLV_all.h>
 #include "interface.h"
 #include "matrix.h"
+#include "input.h"
 
-#define NB_INDIVIDU 20000
+#define NB_INDIVIDU 10000
 
-#define PERCENT_REPRODUCTION 5
+#define PERCENT_REPRODUCTION 0.1
 
-#define PERCENT_KEEP 3
+#define PERCENT_KEEP 0.1
 #define IND_KEEP (NB_INDIVIDU*PERCENT_KEEP/100)
-#define PERCENT_MUTATE 25
+#define PERCENT_MUTATE 40
 #define IND_MUTATE (NB_INDIVIDU*PERCENT_MUTATE/100 + IND_KEEP)
-#define PERCENT_CROSSOVER 39
+#define PERCENT_CROSSOVER 39.9
 #define IND_CROSSOVER (NB_INDIVIDU*PERCENT_CROSSOVER/100 + IND_MUTATE)
-#define PERCENT_NEW 33
+#define PERCENT_NEW 20
 #define IND_NEW (NB_INDIVIDU*PERCENT_NEW/100 + IND_CROSSOVER)
 
-
-
-double matrix[N][N];
 
 void fill_color_10(MLV_Color colors[], int i) {
     colors[0] = MLV_rgba(255-i, 0, 0, 255);
@@ -44,20 +42,24 @@ int main() {
 
     create_windows();
 
-    Point* tab1[N + NB_TRUCKS_MAX + 1];
-    int child[N + NB_TRUCKS_MAX + 1];
+    int N = count_matrix_size("../livraison85/matrice_durees_s.csv") - 1;
+
+    double **matrix = get_time_seconds_matrix_from_file("../livraison85/matrice_durees_s.csv");
+    Point** points = get_points_tab_from_file("../livraison85/pharmacies_etudiees.csv");
+
+    Point** tab1 = copy_with_trucks(points, N);
+    free(points);
+    int *child = malloc((N + NB_TRUCKS_MAX + 1) * sizeof(int));
     MLV_Color colors[10];
-    alloc_and_fill_tab(tab1);
-    fill_matrix(tab1, matrix);
     TabScore* parents[NB_INDIVIDU];
-    init_children(parents, NB_INDIVIDU, tab1, matrix);
+    init_children(parents, NB_INDIVIDU, tab1, matrix, N);
     quick_sort_children(parents, 0, NB_INDIVIDU-1);
     TabScore* childs[NB_INDIVIDU];
 
 
     int s;
-    int nb_gen = 2000;
-    print_points_from_array(parents[0]->tab, tab1);
+    int nb_gen = 1000;
+    print_points_from_array(parents[0]->tab, tab1, N);
     clear_window();
 
     for(s=0;s<nb_gen;++s) {
@@ -68,25 +70,25 @@ int main() {
 
         /*Keep*/
         for(i=0;i < IND_KEEP;++i) {
-            childs[i] = create_tab_score_from_int(parents[i]->tab, matrix);
+            childs[i] = create_tab_score_from_int(parents[i]->tab, matrix, N);
         }
         /*Mutate*/
         for(;i < IND_MUTATE;++i) {
-            childs[i] = create_tab_score_from_int(parents[i%(PERCENT_REPRODUCTION * NB_INDIVIDU / 100)]->tab, matrix);
-            mutate(childs[i]->tab);
-            childs[i]->score = scoring(childs[i]->tab, matrix);
+            childs[i] = create_tab_score_from_int(parents[i%(int)(PERCENT_REPRODUCTION * NB_INDIVIDU / 100)]->tab, matrix, N);
+            mutate(childs[i]->tab, N);
+            childs[i]->score = scoring(childs[i]->tab, matrix, N);
         }
         /*Crossover*/
         for(;i < IND_CROSSOVER;++i) {
-            get_2_random_parents(parents, &parent1, &parent2, (PERCENT_REPRODUCTION * NB_INDIVIDU / 100), matrix);
-            order_crossover(parent1->tab, parent2->tab, child);
-            childs[i] = create_tab_score_from_int(child, matrix);
+            get_2_random_parents(parents, &parent1, &parent2, (PERCENT_REPRODUCTION * NB_INDIVIDU / 100), matrix, N);
+            order_crossover(parent1->tab, parent2->tab, child, N);
+            childs[i] = create_tab_score_from_int(child, matrix, N);
         }
         /*New*/
         for(;i < IND_NEW;++i) {
-            childs[i] = create_tab_score_from_points(tab1, matrix);
-            init_random_tab(childs[i]->tab);
-            childs[i]->score = scoring(childs[i]->tab, matrix);
+            childs[i] = create_tab_score_from_points(tab1, matrix, N);
+            init_random_tab(childs[i]->tab, N);
+            childs[i]->score = scoring(childs[i]->tab, matrix, N);
         }
 
         quick_sort_children(childs, 0, NB_INDIVIDU-1);
@@ -101,7 +103,7 @@ int main() {
             clear_window();
             for(i=255;i>=0;i -= 5) {
                 fill_color_10(colors, i);
-                show_path(tab1, parents[i]->tab, colors, 10, i==0);
+                show_path(tab1, parents[i]->tab, colors, 10, i==0, N);
             }
         }
         
@@ -112,15 +114,22 @@ int main() {
     }
     printf("Best score: %f\n", parents[0]->score);
     printf("Median : %f\n", parents[NB_INDIVIDU/2]->score);
-    print_points_from_array(parents[0]->tab, tab1);
+    print_points_from_array(parents[0]->tab, tab1, N);
 
-    print_array_simple(parents[0]->tab);
+    print_array_simple(parents[0]->tab, N);
     actualise_window();
     clear_window();
     actualise_window();
     fill_color_10(colors, 0);
-    show_path(tab1, parents[0]->tab, colors, 10, 1);
+    show_path(tab1, parents[0]->tab, colors, 10, 1, N);
     actualise_window();
+
+    int i;
+    for(i=0;i<NB_INDIVIDU; i++) {
+        free_tab_score(parents[i]);
+    }
+
+    free(child);
 
     pause_keyboard();
     pause_keyboard();

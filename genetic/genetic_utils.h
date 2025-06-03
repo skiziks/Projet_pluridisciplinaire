@@ -6,18 +6,18 @@
 
 /*Struct qui représente un tableau et son scoring*/
 typedef struct _tabscore {
-    int tab[N+NB_TRUCKS_MAX+1];
+    int *tab;
     double score;
 } TabScore;
 
-void print_array_simple(int arr[]);
+void print_array_simple(int arr[], int N);
 
 /**
  * * @brief Crée un tableau de score à partir d'un tableau des id des points de taille N
  * @param tab tableau de points de taille N + NB_TRUCKS_MAX
  * @param matrix matrice de distance entre les points
  */
-TabScore* create_tab_score_from_int(int tab[], double matrix[][N]);
+TabScore* create_tab_score_from_int(int tab[], double** matrix, int N);
 
 
 /**
@@ -25,7 +25,7 @@ TabScore* create_tab_score_from_int(int tab[], double matrix[][N]);
  * @param tab_points tableau de points de taille N + NB_TRUCKS_MAX
  * @param matrix matrice de distance entre les points
  */
-TabScore* create_tab_score_from_points(Point* tab_points[], double matrix[][N]);
+TabScore* create_tab_score_from_points(Point* tab_points[], double** matrix, int N);
 
 /**
  * @brief free la mémoire d'un tableau de score
@@ -39,19 +39,19 @@ void free_tab_score(TabScore* ts);
  * @param tab_points tableau de points de taille N + NB_TRUCKS_MAX
  * @param matrix matrice de distance entre les points
  */
-void init_children(TabScore* tab[], int nb_individu, Point* tab_points[], double matrix[][N]);
+void init_children(TabScore* tab[], int nb_individu, Point* tab_points[], double **matrix, int N);
 
 /**
  * @brief Initialise le tableau de taille N avec une permutation aléatoire d'une route
  * @param tab tableau de taille N + NB_TRUCKS_MAX
  */
-void init_random_tab(int tab[]);
+void init_random_tab(int tab[], int N);
 
 /**
  * @brief Effectue une de ces 3 mutations aléatoirement: Random swap (50%), décalage (20%), random segment inversion (20%)
  * @param tab tableau de taille N + NB_TRUCKS_MAX
  */
-void mutate(int tab[]);
+void mutate(int tab[], int N);
 
 /**
  * @brief Choisi aléatoirement 2 parents parmi les `max` premiers individus
@@ -61,7 +61,7 @@ void mutate(int tab[]);
  * @param max
  * @param matrix matrice de distance entre les points
  */
-void get_2_random_parents(TabScore* tab[], TabScore** parent1, TabScore** parent2, int max, double matrix[][N]);
+void get_2_random_parents(TabScore* tab[], TabScore** parent1, TabScore** parent2, int max, double **matrix, int N);
 
 /**
  * @brief Effectue un tri rapide entre les individus en fonction de leur score pour avoir les meilleurs en premier
@@ -77,12 +77,12 @@ void quick_sort_children(TabScore* tab[], int start, int end);
  * @param matrix matrice de distance entre les points
  * @return score de l'individu
  */
-double scoring(int tab[], double matrix[][N]);
+double scoring(int tab[], double **matrix, int N);
 
 /**
  * @brief Affiche un tableau
  */
-void print_array(int arr[], double matrix[][N]);
+void print_array(int arr[], double **matrix, int N);
 
 
 /**
@@ -104,7 +104,7 @@ void copy_children_to_parents(TabScore* parents[], TabScore* children[], int max
  * @param parent2 tableau de taille N
  * @param[out] child tableau de taille N de l'enfant créé
  */
-void order_crossover(int parent1[], int parent2[], int child[]);
+void order_crossover(int parent1[], int parent2[], int child[], int N);
 
 
 #endif

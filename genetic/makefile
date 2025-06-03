@@ -1,13 +1,13 @@
-FLAGS = -Wall -ansi -lm -g
+FLAGS = -Wall -lm -g
 LDFLAGS=-lMLV -lm
 LDLIBS = `pkg-config --libs-only-l MLV`
 
 all : genetic
 
-genetic : main.o interface.o genetic_utils.o matrix.o
-	gcc -o genetic main.o interface.o genetic_utils.o matrix.o $(FLAGS) $(LDFLAGS) $(LDLIBS) 
+genetic : main.o interface.o genetic_utils.o matrix.o input.o
+	gcc -o genetic main.o interface.o genetic_utils.o matrix.o input.o $(FLAGS) $(LDFLAGS) $(LDLIBS) 
 
-main.o: main.c interface.h matrix.h matrix.c
+main.o: main.c interface.h matrix.h matrix.c input.h genetic_utils.h input.c
 	gcc -c main.c $(FLAGS) $(LDLIBS) 
 
 interface.o: interface.c interface.h genetic_utils.h matrix.h genetic_utils.c matrix.c
@@ -18,6 +18,9 @@ genetic_utils.o: genetic_utils.c genetic_utils.h matrix.h matrix.c
 
 matrix.o: matrix.c matrix.h
 	gcc -c matrix.c $(FLAGS) $(LDLIBS) 
+
+input.o: input.c input.h
+	gcc -c input.c $(FLAGS) $(LDLIBS)
 
 clean:
 	rm -f *.o
