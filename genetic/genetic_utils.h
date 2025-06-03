@@ -3,6 +3,8 @@
 
 #include "matrix.h"
 
+#define PENALTY_IMPOSSIBLE 10000000
+
 
 /*Struct qui représente un tableau et son scoring*/
 typedef struct _tabscore {
@@ -17,7 +19,7 @@ void print_array_simple(int arr[], int N);
  * @param tab tableau de points de taille N + NB_TRUCKS_MAX
  * @param matrix matrice de distance entre les points
  */
-TabScore* create_tab_score_from_int(int tab[], double** matrix, int N);
+TabScore* create_tab_score_from_int(int tab[], double** matrix, double** time_matrix, int N);
 
 
 /**
@@ -25,7 +27,7 @@ TabScore* create_tab_score_from_int(int tab[], double** matrix, int N);
  * @param tab_points tableau de points de taille N + NB_TRUCKS_MAX
  * @param matrix matrice de distance entre les points
  */
-TabScore* create_tab_score_from_points(Point* tab_points[], double** matrix, int N);
+TabScore* create_tab_score_from_points(Point* tab_points[], double** matrix, double **time_matrix, int N);
 
 /**
  * @brief free la mémoire d'un tableau de score
@@ -39,7 +41,7 @@ void free_tab_score(TabScore* ts);
  * @param tab_points tableau de points de taille N + NB_TRUCKS_MAX
  * @param matrix matrice de distance entre les points
  */
-void init_children(TabScore* tab[], int nb_individu, Point* tab_points[], double **matrix, int N);
+void init_children(TabScore* tab[], int nb_individu, Point* tab_points[], double **matrix, double **time_matrix, int N);
 
 /**
  * @brief Initialise le tableau de taille N avec une permutation aléatoire d'une route
@@ -77,12 +79,12 @@ void quick_sort_children(TabScore* tab[], int start, int end);
  * @param matrix matrice de distance entre les points
  * @return score de l'individu
  */
-double scoring(int tab[], double **matrix, int N);
+double scoring(int tab[], double **matrix, double** time_matrix, int N);
 
 /**
  * @brief Affiche un tableau
  */
-void print_array(int arr[], double **matrix, int N);
+void print_array(int arr[], double **matrix, double **time_matrix, int N);
 
 
 /**

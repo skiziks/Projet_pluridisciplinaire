@@ -7,19 +7,20 @@
 #include "matrix.h"
 #include "input.h"
 
-#define NB_INDIVIDU 10000
+#define NB_INDIVIDU 20000
+#define NB_ENVIRONMENTS 5
+#define INDIVIDUALS_PER_ENVIRONMENT (NB_INDIVIDU / NB_ENVIRONMENTS)
 
-#define PERCENT_REPRODUCTION 0.1
+#define PERCENT_REPRODUCTION 1
 
-#define PERCENT_KEEP 0.1
-#define IND_KEEP (NB_INDIVIDU*PERCENT_KEEP/100)
+#define PERCENT_KEEP 1
+#define IND_KEEP (INDIVIDUALS_PER_ENVIRONMENT * PERCENT_KEEP / 100)
 #define PERCENT_MUTATE 40
-#define IND_MUTATE (NB_INDIVIDU*PERCENT_MUTATE/100 + IND_KEEP)
-#define PERCENT_CROSSOVER 39.9
-#define IND_CROSSOVER (NB_INDIVIDU*PERCENT_CROSSOVER/100 + IND_MUTATE)
+#define IND_MUTATE (INDIVIDUALS_PER_ENVIRONMENT * PERCENT_MUTATE / 100 + IND_KEEP)
+#define PERCENT_CROSSOVER 39
+#define IND_CROSSOVER (INDIVIDUALS_PER_ENVIRONMENT * PERCENT_CROSSOVER / 100 + IND_MUTATE)
 #define PERCENT_NEW 20
-#define IND_NEW (NB_INDIVIDU*PERCENT_NEW/100 + IND_CROSSOVER)
-
+#define IND_NEW (INDIVIDUALS_PER_ENVIRONMENT * PERCENT_NEW / 100 + IND_CROSSOVER)
 
 void fill_color_10(MLV_Color colors[], int i) {
     colors[0] = MLV_rgba(255-i, 0, 0, 255);
@@ -34,99 +35,139 @@ void fill_color_10(MLV_Color colors[], int i) {
     colors[9] = MLV_rgba(0, 255-i, 128-i/2, 255);
 }
 
+void print_info(TabScore *ts, double **dist_matrix, double **time_matrix, int N) {
+    int i;
+    int truck_time_s = 0;
+    for(i=0;i<N+NB_TRUCKS_MAX;i++) {
+        truck_time_s += distance(ts->tab[i], ts->tab[i+1], time_matrix);
+        if(ts->tab[i] > 0) {
+            printf("%d ", ts->tab[i]);
+            if(ts->tab[i+1] <= 0) {
+                printf("Total time : %dh%dm%ds\n", truck_time_s/3600, (truck_time_s%3600)/60, truck_time_s%60);
+                truck_time_s = 0;
+            }
+        }
+    }
+}
 
-
-
-int main() {
+int main(int argc, char* argv[]) {
     srand(time(NULL));
 
     create_windows();
 
     int N = count_matrix_size("../livraison85/matrice_durees_s.csv") - 1;
 
-    double **matrix = get_time_seconds_matrix_from_file("../livraison85/matrice_durees_s.csv");
+    double **time_matrix = get_time_seconds_matrix_from_file("../livraison85/matrice_durees_s.csv");
+    double **matrix = get_distance_meters_matrix_from_file("../livraison85/matrice_distances_m.csv");
     Point** points = get_points_tab_from_file("../livraison85/pharmacies_etudiees.csv");
 
     Point** tab1 = copy_with_trucks(points, N);
     free(points);
     int *child = malloc((N + NB_TRUCKS_MAX + 1) * sizeof(int));
     MLV_Color colors[10];
-    TabScore* parents[NB_INDIVIDU];
-    init_children(parents, NB_INDIVIDU, tab1, matrix, N);
-    quick_sort_children(parents, 0, NB_INDIVIDU-1);
-    TabScore* childs[NB_INDIVIDU];
 
+    TabScore* environments[NB_ENVIRONMENTS][INDIVIDUALS_PER_ENVIRONMENT];
+    TabScore* children[NB_ENVIRONMENTS][INDIVIDUALS_PER_ENVIRONMENT];
+
+    // Initialize environments and children
+    for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
+        for (int i = 0; i < INDIVIDUALS_PER_ENVIRONMENT; ++i) {
+            environments[env][i] = create_tab_score_from_points(tab1, matrix, time_matrix, N);
+            init_random_tab(environments[env][i]->tab, N);
+            environments[env][i]->score = scoring(environments[env][i]->tab, matrix, time_matrix, N);
+        }
+        quick_sort_children(environments[env], 0, INDIVIDUALS_PER_ENVIRONMENT - 1);
+    }
 
     int s;
     int nb_gen = 1000;
-    print_points_from_array(parents[0]->tab, tab1, N);
+    print_points_from_array(environments[0][0]->tab, tab1, N);
     clear_window();
 
-    for(s=0;s<nb_gen;++s) {
+    for (s = 0; s < nb_gen; ++s) {
+        for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
+            TabScore* parent1;
+            TabScore* parent2;
 
-        int i;
-        TabScore* parent1;
-        TabScore* parent2;
+            int i = 0;
 
-        /*Keep*/
-        for(i=0;i < IND_KEEP;++i) {
-            childs[i] = create_tab_score_from_int(parents[i]->tab, matrix, N);
-        }
-        /*Mutate*/
-        for(;i < IND_MUTATE;++i) {
-            childs[i] = create_tab_score_from_int(parents[i%(int)(PERCENT_REPRODUCTION * NB_INDIVIDU / 100)]->tab, matrix, N);
-            mutate(childs[i]->tab, N);
-            childs[i]->score = scoring(childs[i]->tab, matrix, N);
-        }
-        /*Crossover*/
-        for(;i < IND_CROSSOVER;++i) {
-            get_2_random_parents(parents, &parent1, &parent2, (PERCENT_REPRODUCTION * NB_INDIVIDU / 100), matrix, N);
-            order_crossover(parent1->tab, parent2->tab, child, N);
-            childs[i] = create_tab_score_from_int(child, matrix, N);
-        }
-        /*New*/
-        for(;i < IND_NEW;++i) {
-            childs[i] = create_tab_score_from_points(tab1, matrix, N);
-            init_random_tab(childs[i]->tab, N);
-            childs[i]->score = scoring(childs[i]->tab, matrix, N);
+            // Keep
+            for (; i < IND_KEEP; ++i) {
+                children[env][i] = create_tab_score_from_int(environments[env][i]->tab, matrix, time_matrix, N);
+            }
+
+            // Mutate
+            for (; i < IND_MUTATE; ++i) {
+                children[env][i] = create_tab_score_from_int(environments[env][i % (int)(PERCENT_REPRODUCTION * INDIVIDUALS_PER_ENVIRONMENT / 100)]->tab, matrix, time_matrix, N);
+                mutate(children[env][i]->tab, N);
+                children[env][i]->score = scoring(children[env][i]->tab, matrix, time_matrix, N);
+            }
+
+            // Crossover
+            for (; i < IND_CROSSOVER; ++i) {
+                get_2_random_parents(environments[env], &parent1, &parent2, (PERCENT_REPRODUCTION * INDIVIDUALS_PER_ENVIRONMENT / 100), matrix, N);
+                order_crossover(parent1->tab, parent2->tab, child, N);
+                children[env][i] = create_tab_score_from_int(child, matrix, time_matrix, N);
+            }
+
+            // New
+            for (; i < IND_NEW; ++i) {
+                children[env][i] = create_tab_score_from_points(tab1, matrix, time_matrix, N);
+                init_random_tab(children[env][i]->tab, N);
+                children[env][i]->score = scoring(children[env][i]->tab, matrix, time_matrix, N);
+            }
+
+            quick_sort_children(children[env], 0, INDIVIDUALS_PER_ENVIRONMENT - 1);
+            copy_children_to_parents(environments[env], children[env], INDIVIDUALS_PER_ENVIRONMENT);
         }
 
-        quick_sort_children(childs, 0, NB_INDIVIDU-1);
-        
-        /*printf("100 premiers enfants triés : \n");
-        for(i=0;i<100;++i) {
-            print_array(childs[i]->tab, matrix);
-        }*/
-        copy_children_to_parents(parents, childs, NB_INDIVIDU);
-        
-        if(s % 30 == 0) {
+        if (s % 30 == 0) {
             clear_window();
-            for(i=255;i>=0;i -= 5) {
-                fill_color_10(colors, i);
-                show_path(tab1, parents[i]->tab, colors, 10, i==0, N);
+            for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
+                for (int i = 50; i >= 0; i -= 1) {
+                    fill_color_10(colors, i*5);
+                    show_path(tab1, environments[env][i]->tab, colors, 10, i == 0, N, 300 * (env%5), 400 * (env/5));
+                }
             }
         }
-        
-        actualise_window();
-        printf("Generation %d : Best score: %f Median: %f\n", s , parents[0]->score, parents[NB_INDIVIDU/2]->score);
-        
-        printf("Number of same score: %d\n", count_same_first_score(parents, NB_INDIVIDU));
-    }
-    printf("Best score: %f\n", parents[0]->score);
-    printf("Median : %f\n", parents[NB_INDIVIDU/2]->score);
-    print_points_from_array(parents[0]->tab, tab1, N);
 
-    print_array_simple(parents[0]->tab, N);
-    actualise_window();
+        actualise_window();
+        printf("Generation %d : Best scores: ", s);
+        for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
+            printf("Env %d: %f ", env, environments[env][0]->score);
+        }
+        printf("\n");
+    }
+
+    printf("Best scores per environment:\n");
+
+    double min_score = environments[0][0]->score;
+    int min = 0;
+
     clear_window();
+    for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
+
+        if(environments[env][0]->score < min_score) {
+            min_score = environments[env][0]->score;
+            min = env;
+        }
+        fill_color_10(colors, 0);
+        show_path(tab1, environments[env][0]->tab, colors, 10, 1, N, 300 * (env%5), 400 * (env/5));
+        printf("Environment %d: Best score: %f\n", env, environments[env][0]->score);
+        print_array(environments[env][0]->tab, matrix, time_matrix, N);
+    }
+
     actualise_window();
-    fill_color_10(colors, 0);
-    show_path(tab1, parents[0]->tab, colors, 10, 1, N);
-    actualise_window();
+
+    printf("\n\nBest env : %d\n\n", min);
+
+    print_info(environments[min][0], matrix, time_matrix, N);
 
     int i;
-    for(i=0;i<NB_INDIVIDU; i++) {
-        free_tab_score(parents[i]);
+    for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
+        for (i = 0; i < INDIVIDUALS_PER_ENVIRONMENT; i++) {
+            free_tab_score(environments[env][i]);
+        }
     }
 
     free(child);

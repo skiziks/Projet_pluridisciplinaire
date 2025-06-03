@@ -2,7 +2,7 @@
 #define _MATRIX_
 #include <math.h>
 
-#define NB_TRUCKS_MAX 5
+#define NB_TRUCKS_MAX 40
 
 typedef struct _point {
     int id;

@@ -5,8 +5,8 @@
 #include "matrix.h"
 #include "genetic_utils.h"
 
-#define HEIGHT_WINDOWS_PIX 600
-#define WIDTH_WINDOWS_PIX 800
+#define HEIGHT_WINDOWS_PIX 800
+#define WIDTH_WINDOWS_PIX 1600
 
 
 #define WAIT_TIME_MILLISEC 500
@@ -19,6 +19,6 @@ void actualise_window(void);
 void pause_keyboard(void);
 void clear_window(void);
 void pause_action(void);
-void show_path(Point* tab[], int tab_points[], MLV_Color color[], int nb_colors, int with_circle, int N);
+void show_path(Point* tab[], int tab_points[], MLV_Color color[], int nb_colors, int with_circle, int N, int offsetX, int offsetY);
 
 #endif

@@ -5,11 +5,11 @@
 
 #include "interface.h"
 
-#define BASE_X 50
-#define BASE_Y 50
+#define BASE_X 0
+#define BASE_Y 0
 
-#define MUL_X 400
-#define MUL_Y 400
+#define MUL_X 300
+#define MUL_Y 300
 
 #define MIN_X 48.4
 #define MIN_Y 2.5
@@ -49,26 +49,24 @@ double y(double lon) {
 
 
 
-void show_path(Point* tab[], int tab_points[], MLV_Color color[], int nb_colors, int with_circle, int N) {
+void show_path(Point* tab[], int tab_points[], MLV_Color color[], int nb_colors, int with_circle, int N, int offsetX, int offsetY) {
   int i;
   int camion = 0;
   char str[5];
-  for(i=1;i<N + NB_TRUCKS_MAX;++i) {
+  for(i=1;i<N + NB_TRUCKS_MAX+1;++i) {
     Point* point = tab[z(tab_points[i])];
     if (with_circle) {
-      MLV_draw_filled_circle(x(point->lat), y(point->lon), 5, point->id > 0 ?MLV_rgba(255,0,0,255):MLV_rgba(0,255,0,255));
+      MLV_draw_filled_circle(x(point->lat) + offsetX, y(point->lon) + offsetY, 3, point->id > 0 ?MLV_rgba(255,255,255,255):MLV_rgba(0,255,0,255));
       sprintf(str, "%d", point->id);
-      MLV_draw_text(x(point->lat), y(point->lon), str, MLV_COLOR_WHITE);
+     /* MLV_draw_text(x(point->lat) + offsetX, y(point->lon) + offsetY, str, MLV_COLOR_WHITE);*/
     }
     
-      MLV_draw_line(x(tab[z(tab_points[i-1])]->lat), y(tab[z(tab_points[i-1])]->lon),
-                  x(point->lat), y(point->lon),
+      MLV_draw_line(x(tab[z(tab_points[i-1])]->lat) + offsetX, y(tab[z(tab_points[i-1])]->lon) + offsetY,
+                  x(point->lat) + offsetX, y(point->lon) + offsetY,
                   color[camion%nb_colors]);
 
     if (point->id <= 0 && i != 0 && i != N + NB_TRUCKS_MAX) {
       camion++;
     }
   }
-  /*actualise_window();*/
-  /*pause_action();*/
 }
