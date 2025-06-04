@@ -3,3 +3,4 @@
 genetic/genetic
 genetic/*.o
 /genetic/.vscode
+output.txt
