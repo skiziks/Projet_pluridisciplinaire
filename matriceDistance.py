@@ -10,7 +10,7 @@ coords = []
 noms = []
 
 # Étape 1 : Lecture + géocodage avec Nominatim
-with open('livraison/livraison85.csv', newline='') as csvfile:
+with open('livraison/livraison10.csv', newline='') as csvfile:
     for line in csvfile:
         line = line.strip()
         row = line.split(',')
@@ -115,7 +115,7 @@ for i_start in range(0, N, B):
 # Étape 4 : Écriture des résultats dans des CSV
 
 # 1. Coordonnées valides avec nom et adresse
-with open("livraison85/pharmacies_etudiees.csv", "w", newline="") as f:
+with open("livraison10/pharmacies_etudiees.csv", "w", newline="") as f:
     writer = csv.writer(f)
     for i, c in enumerate(coords):
         if c is not None:
@@ -124,13 +124,13 @@ with open("livraison85/pharmacies_etudiees.csv", "w", newline="") as f:
 
 
 # 2. Matrice des distances (en mètres)
-with open("livraison85/matrice_distances_m.csv", "w", newline="") as f:
+with open("livraison10/matrice_distances_m.csv", "w", newline="") as f:
     for row in distances:
         row_str = ' '.join(str(int(val)) for val in row)
         f.write(row_str + '\n')
 
 # 3. Matrice des durées (en secondes)
-with open("livraison85/matrice_durees_s.csv", "w", newline="") as f:
+with open("livraison10/matrice_durees_s.csv", "w", newline="") as f:
     for row in durations:
         row_str = ' '.join(str(int(val)) for val in row)
         f.write(row_str + '\n')
