@@ -52,6 +52,17 @@ void print_info(TabScore *ts, double **dist_matrix, double **time_matrix, int N)
 }
 
 int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <time_limit_in_seconds>\n", argv[0]);
+        return 1;
+    }
+
+    int time_limit = atoi(argv[1]);
+    if (time_limit <= 0) {
+        fprintf(stderr, "Invalid time limit. Please provide a positive integer.\n");
+        return 1;
+    }
+
     srand(time(NULL));
 
     create_windows();
@@ -80,12 +91,10 @@ int main(int argc, char* argv[]) {
         quick_sort_children(environments[env], 0, INDIVIDUALS_PER_ENVIRONMENT - 1);
     }
 
-    int s;
-    int nb_gen = 1000;
-    print_points_from_array(environments[0][0]->tab, tab1, N);
-    clear_window();
+    time_t start_time = time(NULL);
+    int s = 0;
 
-    for (s = 0; s < nb_gen; ++s) {
+    while (difftime(time(NULL), start_time) < time_limit) {
         for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
             TabScore* parent1;
             TabScore* parent2;
@@ -126,8 +135,8 @@ int main(int argc, char* argv[]) {
             clear_window();
             for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
                 for (int i = 50; i >= 0; i -= 1) {
-                    fill_color_10(colors, i*5);
-                    show_path(tab1, environments[env][i]->tab, colors, 10, i == 0, N, 300 * (env%5), 400 * (env/5));
+                    fill_color_10(colors, i * 5);
+                    show_path(tab1, environments[env][i]->tab, colors, 10, i == 0, N, 300 * (env % 5), 400 * (env / 5));
                 }
             }
         }
@@ -138,6 +147,8 @@ int main(int argc, char* argv[]) {
             printf("Env %d: %f ", env, environments[env][0]->score);
         }
         printf("\n");
+
+        s++;
     }
 
     printf("Best scores per environment:\n");
@@ -147,13 +158,12 @@ int main(int argc, char* argv[]) {
 
     clear_window();
     for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
-
-        if(environments[env][0]->score < min_score) {
+        if (environments[env][0]->score < min_score) {
             min_score = environments[env][0]->score;
             min = env;
         }
         fill_color_10(colors, 0);
-        show_path(tab1, environments[env][0]->tab, colors, 10, 1, N, 300 * (env%5), 400 * (env/5));
+        show_path(tab1, environments[env][0]->tab, colors, 10, 1, N, 300 * (env % 5), 400 * (env / 5));
         printf("Environment %d: Best score: %f\n", env, environments[env][0]->score);
         print_array(environments[env][0]->tab, matrix, time_matrix, N);
     }
@@ -163,7 +173,6 @@ int main(int argc, char* argv[]) {
     printf("\n\nBest env : %d\n\n", min);
 
     print_info(environments[min][0], matrix, time_matrix, N);
-
 
     const char *output_path = "../output.txt";
     write_output_to_file(environments[min][0], matrix, time_matrix, N, output_path);
