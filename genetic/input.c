@@ -6,9 +6,9 @@
 
 #define MAX_LINE_LENGTH 1024 
 
-
+/*
 int main() {
-    /*
+    
     const char* distance_path = "../livraison85/matrice_distances_m.csv";
     const char* time_path = "../livraison85/matrice_durees_s.csv";
 
@@ -22,7 +22,7 @@ int main() {
     }
 
     double** distances = get_distance_meters_matrix_from_file((char*)distance_path);
-    int** times = get_time_seconds_matrix_from_file((char*)time_path);
+    double** times = get_time_seconds_matrix_from_file((char*)time_path);
 
     if (!distances || !times) {
         fprintf(stderr, "Erreur lors de la lecture des fichiers.\n");
@@ -33,10 +33,10 @@ int main() {
     print_double_matrix(distances, n1);
 
     printf("\n=== Matrice des temps (secondes) ===\n");
-    print_int_matrix(times, n2);
+    print_double_matrix(times, n2);
 
     free_double_matrix(distances, n1);
-    free_int_matrix(times, n2);
+    free_double_matrix(times, n2);
     
 
     char* path = "../livraison85/pharmacies_etudiees.csv"; 
@@ -51,9 +51,9 @@ int main() {
     }
 
     return 0;
-    */
+    
 }
-
+*/
 
 double** get_distance_meters_matrix_from_file(char* path) {
     FILE* file = fopen(path, "r");
