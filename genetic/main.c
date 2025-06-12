@@ -42,6 +42,8 @@ void print_info(TabScore *ts, double **dist_matrix, double **time_matrix, int N)
 }
 
 int main(int argc, char* argv[]) {
+    
+    time_t start_time = time(NULL);
     if (argc < 4) {
         fprintf(stderr, "Usage: %s <time_limit_in_seconds> <folder_path> <output file>\n", argv[0]);
         return 1;
@@ -94,8 +96,6 @@ int main(int argc, char* argv[]) {
         }
         quick_sort_children(environments[env], 0, INDIVIDUALS_PER_ENVIRONMENT - 1);
     }
-
-    time_t start_time = time(NULL);
     int s = 0;
 
     while (difftime(time(NULL), start_time) < time_limit) {
