@@ -21,6 +21,10 @@ def read_routes(file_path):
 
 all_routes = read_routes('output.txt')
 
+#####################################################################
+####################             MAP             ####################
+    
+
 
 # Generate a pdf for each route
 for idx, route in enumerate(all_routes, start=1):
@@ -93,18 +97,53 @@ for idx, route in enumerate(all_routes, start=1):
         pdf_x = (210 - pdf_width) / 2  # Center horizontally
         pdf.image(map_filename, x=pdf_x, y=30, w=pdf_width, h=pdf_height)
 
-    pdf.set_y(30 + pdf_height + 10)
-    pdf.set_font('Helvetica', 'B', 12) 
-    pdf.cell(200, 10, 'Route Details', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.set_font('Helvetica', '', 12) 
+    #####################################################################
+    ###################             TABLE             ###################
+    
+    
+    # pdf.set_y(30 + pdf_height + 10)
+    # pdf.set_font('Helvetica', 'B', 12) 
+    # pdf.cell(200, 10, 'Route Details', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    # pdf.set_font('Helvetica', '', 12) 
 
-    for _, row in df.iterrows():
-        pdf.cell(
-            200, 
-            10, 
-            f"{row['Order']} - {row['Pharmacy']}, {row['Address']}", 
-            new_x=XPos.LMARGIN, 
-            new_y=YPos.NEXT)
+    # for _, row in df.iterrows():
+    #     pdf.cell(
+    #         200, 
+    #         10, 
+    #         f"{row['Order']} - {row['Pharmacy']}, {row['Address']}", 
+    #         new_x=XPos.LMARGIN, 
+    #         new_y=YPos.NEXT)
+
+    pdf.set_y(30 + pdf_height + 10)
+    
+    row_height = 7 
+    col_widths = [70, 80, 20, 20] 
+
+    # Header row
+    pdf.set_font('Helvetica', 'B', 9)
+    pdf.cell(col_widths[0], row_height, f"Parcours camionnette {idx}", border=1, align='C')
+    pdf.cell(col_widths[1], row_height, "Address", border=1, align='C')
+    pdf.cell(col_widths[2], row_height, "Arrival", border=1, align='C')
+    pdf.cell(col_widths[3], row_height, "Departure", border=1, align='C')
+    pdf.ln()
+
+    # Content rows
+    pdf.set_font('Helvetica', '', 9)
+    for i in range(len(route)):
+        name = names[route[i]]
+        address = addresses[route[i]]
+
+        # Custom labels for first and last rows
+        if i == 0:
+            name = "Départ entrepôt Cerp"
+        elif i == len(route) - 1:
+            name = "Retour entrepôt Cerp"
+
+        pdf.cell(col_widths[0], row_height, name, border=1)
+        pdf.cell(col_widths[1], row_height, address, border=1)
+        pdf.cell(col_widths[2], row_height, "", border=1)
+        pdf.cell(col_widths[3], row_height, "", border=1)
+        pdf.ln(row_height)
         
     pdf_filename = f'route_camion_{idx}.pdf'
     pdf.output(pdf_filename)
