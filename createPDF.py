@@ -73,6 +73,20 @@ for idx, route in enumerate(all_routes, start=1):
         x2, y2 = coords[route[i + 1]]
         plt.plot([x1, x2], [y1, y2], color='red', linewidth=2)
 
+        # Coordonnées du centre
+        xm = (x1 + x2) / 2
+        ym = (y1 + y2) / 2
+
+        # Petite flèche au milieu
+        dx = x2 - x1
+        dy = y2 - y1
+        ax.annotate(
+            '',  # pas de texte
+            xy=(xm + 0.0001 * dx, ym + 0.0001 * dy),  # pointe de la flèche
+            xytext=(xm - 0.0001 * dx, ym - 0.0001 * dy),  # base de la flèche
+            arrowprops=dict(arrowstyle="->", color='red', lw=1.5)
+        )
+
     # Fit axis to route with padding 
     lats = [coords[i][0] for i in route]
     lons = [coords[i][1] for i in route]
@@ -92,7 +106,16 @@ for idx, route in enumerate(all_routes, start=1):
     ax.set_ylim(lon_center - max_span / 2, lon_center + max_span / 2)
 
     ctx.add_basemap(ax, crs='EPSG:4326', source=ctx.providers.OpenStreetMap.Mapnik)
-    ax.set_axis_off()
+    # ax.set_axis_off()
+    depot_x, depot_y = coords[route[0]]
+    ax.plot(
+        depot_x,
+        depot_y,
+        marker='o',
+        markersize=15,     # same size as your other dots
+        color='blue',       # whatever color you like
+        zorder=3           # ensure it’s on top
+    )
 
     map_filename = f'route_map_{idx}.png'
     plt.title(f'Delivery Route - Truck {idx}')
@@ -148,7 +171,7 @@ for idx, route in enumerate(all_routes, start=1):
                 
                 schedule.append((arrival.strftime("%H:%M"), departure.strftime("%H:%M")))
                 current_time = departure
-                
+
             all_schedules.append(schedule)
         return all_schedules
 
