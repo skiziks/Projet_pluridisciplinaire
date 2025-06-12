@@ -118,7 +118,6 @@ for idx, route in enumerate(all_routes, start=1):
 
     def compute_schedule_with_time_windows(routes, matrix, delivery_duration=180):
         """
-        Compute schedules for all routes, enforcing:
         - Morning: 09:00–12:00 (even route index)
         - Afternoon: 15:00–18:00 (odd route index)
         """
