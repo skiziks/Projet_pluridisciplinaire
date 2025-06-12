@@ -4,7 +4,6 @@
 #include <time.h>
 #include <math.h>
 #include <MLV/MLV_all.h>
-#include "interface.h"
 #include "matrix.h"
 #include "input.h"
 #include "output.h"
@@ -26,19 +25,6 @@
 
 
 #define MAX_PATH_LENGTH 1024
-
-void fill_color_10(MLV_Color colors[], int i) {
-    colors[0] = MLV_rgba(255-i, 0, 0, 255);
-    colors[1] = MLV_rgba(0, 0, 255-i, 255);
-    colors[2] = MLV_rgba(0, 255-i, 0, 255);
-    colors[3] = MLV_rgba(255-i, 255-i, 0, 255);
-    colors[4] = MLV_rgba(255-i, 0, 255-i, 255);
-    colors[5] = MLV_rgba(0, 255-i, 255-i, 255);
-    colors[6] = MLV_rgba(255-i, 255-i, 255-i, 255);
-    colors[7] = MLV_rgba(255-i, 128-i/2, 128, 255);
-    colors[8] = MLV_rgba(128-i/2, 255-i, 70, 255);
-    colors[9] = MLV_rgba(0, 255-i, 128-i/2, 255);
-}
 
 void print_info(TabScore *ts, double **dist_matrix, double **time_matrix, int N) {
     int i;
@@ -69,8 +55,6 @@ int main(int argc, char* argv[]) {
 
     srand(time(NULL));
 
-    create_windows();
-
     char durees[MAX_PATH_LENGTH] = "";
     strcat(durees, argv[2]);
     strcat(durees, "/matrice_durees_s.csv");
@@ -97,7 +81,6 @@ int main(int argc, char* argv[]) {
     Point** tab1 = copy_with_trucks(points, N);
     free(points);
     int *child = malloc((N + NB_TRUCKS_MAX + 1) * sizeof(int));
-    MLV_Color colors[10];
 
     TabScore* environments[NB_ENVIRONMENTS][INDIVIDUALS_PER_ENVIRONMENT];
     TabScore* children[NB_ENVIRONMENTS][INDIVIDUALS_PER_ENVIRONMENT];
@@ -152,24 +135,6 @@ int main(int argc, char* argv[]) {
             copy_children_to_parents(environments[env], children[env], INDIVIDUALS_PER_ENVIRONMENT);
         }
 
-        /*
-        if (s % 30 == 0) {
-            clear_window();
-            for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
-                for (int i = 50; i >= 0; i -= 1) {
-                    fill_color_10(colors, i * 5);
-                    show_path(tab1, environments[env][i]->tab, colors, 10, i == 0, N, MUL_X * (env % (WIDTH_WINDOWS_PIX/MUL_X)), MUL_Y * (env / (WIDTH_WINDOWS_PIX/MUL_X)));
-                }
-            }
-        }
-
-        actualise_window();
-        printf("Generation %d : Best scores: ", s);
-        for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
-            printf("Env %d: %f ", env, environments[env][0]->score);
-        }
-        printf("\n");*/
-
         s++;
     }
 
@@ -177,20 +142,6 @@ int main(int argc, char* argv[]) {
 
     double min_score = environments[0][0]->score;
     int min = 0;
-
-    clear_window();
-    for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
-        if (environments[env][0]->score < min_score) {
-            min_score = environments[env][0]->score;
-            min = env;
-        }
-        fill_color_10(colors, 0);
-        show_path(tab1, environments[env][0]->tab, colors, 10, 1, N, MUL_X * (env % (WIDTH_WINDOWS_PIX/MUL_X)), MUL_Y * (env / (WIDTH_WINDOWS_PIX/MUL_X)));
-        printf("Environment %d: Best score: %f\n", env, environments[env][0]->score);
-        print_array(environments[env][0]->tab, matrix, time_matrix, N);
-    }
-
-    actualise_window();
 
     printf("\n\nBest env : %d\n\n", min);
 
@@ -207,8 +158,5 @@ int main(int argc, char* argv[]) {
     }
 
     free(child);
-
-    pause_keyboard();
-    pause_keyboard();
     return 0;
 }
