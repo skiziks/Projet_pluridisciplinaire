@@ -6,6 +6,8 @@ from fpdf import FPDF, XPos, YPos
 import contextily as ctx
 from PIL import Image
 from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time 
+ 
 
 
 #####################################################################
@@ -33,7 +35,20 @@ def read_routes(file_path):
 
 all_routes = read_routes('output.txt')
 
+#####################################################################
+##############             DETERMINE  TIME             ##############
 
+now = datetime.now()
+today = now.date()
+if now < datetime.combine(today, time(9, 0)):
+    shift_start_dt = datetime.combine(today, time(9, 0))
+elif now < datetime.combine(today, time(13, 0)):
+    shift_start_dt = datetime.combine(today, time(15, 0))
+else:
+    shift_start_dt = datetime.combine(today, time(9, 0))
+
+# shift_start_dt = datetime.combine(today, time(13, 0))
+# print("TEST (fake time shift):", shift_start_dt.strftime("%Y-%m-%d %H:%M:%S"))
 
 #####################################################################
 ####################             MAP             ####################
@@ -116,66 +131,30 @@ for idx, route in enumerate(all_routes, start=1):
     ###########             SCHEDULE  CALCULATION             ###########
 
 
-    def compute_schedule_with_time_windows(routes, matrix, delivery_duration=180):
-        """
-        - Morning: 09:00–12:00 (even route index)
-        - Afternoon: 15:00–18:00 (odd route index)
-        """
+    def compute_schedule(routes, matrix, delivery_duration=180, shift_start=None):
+        #Use shift_start 
         all_schedules = []
-
-        for route_index, route in enumerate(routes):
-            # Choose window based on route index
-            if route_index % 2 == 0:
-                start_time = datetime.strptime("09:00", "%H:%M")
-                end_time = datetime.strptime("12:00", "%H:%M")
-            else:
-                start_time = datetime.strptime("15:00", "%H:%M")
-                end_time = datetime.strptime("18:00", "%H:%M")
-
-            current_time = start_time
+        for route in routes:
+            current_time = shift_start
             schedule = []
-
             for i in range(len(route)):
                 if i == 0:
                     arrival = current_time
                 else:
-                    travel_time = int(matrix.iloc[route[i - 1], route[i]])
+                    travel_time = int(matrix.iloc[route[i-1], route[i]])
                     arrival = current_time + timedelta(seconds=travel_time)
-
                 departure = arrival + timedelta(seconds=delivery_duration)
-
-                # if departure > end_time:
-                #     arrival_str = departure_str = "Too late"
-                #     schedule.append((arrival_str, departure_str))
-                #     break
-
                 schedule.append((arrival.strftime("%H:%M"), departure.strftime("%H:%M")))
                 current_time = departure
-
             all_schedules.append(schedule)
-
         return all_schedules
 
-
-    all_schedules = compute_schedule_with_time_windows(all_routes, df_times)
+    all_schedules = compute_schedule(all_routes, df_times, shift_start=shift_start_dt)
 
     
     #####################################################################
     ###################             TABLE             ###################
     
-    
-    # pdf.set_y(30 + pdf_height + 10)
-    # pdf.set_font('Helvetica', 'B', 12) 
-    # pdf.cell(200, 10, 'Route Details', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    # pdf.set_font('Helvetica', '', 12) 
-
-    # for _, row in df.iterrows():
-    #     pdf.cell(
-    #         200, 
-    #         10, 
-    #         f"{row['Order']} - {row['Pharmacy']}, {row['Address']}", 
-    #         new_x=XPos.LMARGIN, 
-    #         new_y=YPos.NEXT)
 
     pdf.set_y(30 + pdf_height + 10)
     
@@ -202,10 +181,11 @@ for idx, route in enumerate(all_routes, start=1):
         elif i == len(route) - 1:
             name = "Retour entrepôt Cerp"
 
-        try:
-            arrival, departure = all_schedules[idx - 1][i]
-        except IndexError:
-            arrival, departure = ("-", "-")
+        # try:
+        #     arrival, departure = all_schedules[idx - 1][i]
+        # except IndexError:
+        #     arrival, departure = ("-", "-")
+        arrival, departure = all_schedules[idx - 1][i]
 
         if i == 0:
             name = "Départ entrepôt Cerp"
