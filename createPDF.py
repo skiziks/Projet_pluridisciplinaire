@@ -76,7 +76,7 @@ for idx, route in enumerate(all_routes, start=1):
     pdf.add_page()
     pdf.set_font('Helvetica', 'B', 16)  
     pdf.cell(200, 10, 'Pharmacy Delivery Route', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
-    pdf.image('route_map.png', x=10, y=20, w=190)
+    pdf.image(map_filename, x=10, y=20, w=190)
 
     pdf.set_y(150)
     pdf.set_font('Helvetica', 'B', 12) 
