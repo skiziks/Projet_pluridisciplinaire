@@ -3,13 +3,13 @@ import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 import geopandas as gpd
-from fpdf import FPDF
+from fpdf import FPDF, XPos, YPos
 import contextily as ctx
+from PIL import Image
+from datetime import datetime, timedelta, time
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-
-# === 1. Récupération des arguments : dossier et fichier de routes ===
 if len(sys.argv) != 3:
     print("Usage: python createPDF.py <dossier_livraison> <fichier_output.txt>")
     sys.exit(1)
@@ -17,74 +17,128 @@ if len(sys.argv) != 3:
 folder = sys.argv[1]
 output_file = sys.argv[2]
 pharma_csv_path = os.path.join(folder, "pharmacies_etudiees.csv")
+df_times_path = os.path.join(folder, "matrice_durees_s.csv")
+df_dist_path = os.path.join(folder, "matrice_distances_m.csv")
 
-# === 2. Chargement des données des pharmacies ===
+# Load data
 df_pharma = pd.read_csv(pharma_csv_path, header=None)
 df_pharma.columns = ['Name', 'Address', 'Latitude', 'Longitude']
-
 names = df_pharma['Name'].tolist()
 addresses = df_pharma['Address'].tolist()
 coords = list(zip(df_pharma['Latitude'].tolist(), df_pharma['Longitude'].tolist()))
 
-# === 3. Lecture des routes optimisées ===
+df_times = pd.read_csv(df_times_path, sep=' ', header=None)
+df_dist = pd.read_csv(df_dist_path, sep=' ', header=None)
+
 def read_routes(file_path):
     with open(file_path, 'r') as file:
         return [list(map(int, line.strip().split())) for line in file if line.strip()]
 
 all_routes = read_routes(output_file)
 
-# === 4. Génération d'un PDF avec carte et détails pour chaque route ===
-for idx, route in enumerate(all_routes, start=1):
-    # 4.1 Génération de la carte avec les points et les lignes de la route
-    fig, ax = plt.subplots()
+# Get current datetime for dynamic time shift
+today = datetime.now().date()
 
-    gdf = gpd.GeoDataFrame(
-        geometry=gpd.points_from_xy(
-            [coords[i][0] for i in route],
-            [coords[i][1] for i in route]
-        )
-    )
+def compute_schedule(routes, matrix, delivery_duration=180):
+    all_schedules = []
+    for route_index, route in enumerate(routes):
+        shift_start = datetime.combine(today, time(9, 0)) if route_index % 2 == 0 else datetime.combine(today, time(15, 0))
+        current_time = shift_start
+        schedule = []
+        for i in range(len(route)):
+            if i == 0:
+                arrival = current_time
+                departure = current_time
+            else:
+                travel_time = int(matrix.iloc[route[i - 1], route[i]])
+                arrival = current_time + timedelta(seconds=travel_time)
+                departure = arrival + timedelta(seconds=delivery_duration)
+            schedule.append((arrival.strftime("%H:%M"), departure.strftime("%H:%M")))
+            current_time = departure
+        all_schedules.append(schedule)
+    return all_schedules
+
+all_schedules = compute_schedule(all_routes, df_times)
+
+for idx, route in enumerate(all_routes, start=1):
+    fig, ax = plt.subplots(figsize=(6, 6), dpi=150)
+    gdf = gpd.GeoDataFrame(geometry=gpd.points_from_xy([coords[i][0] for i in route], [coords[i][1] for i in route]))
     gdf.plot(ax=ax, color='black', marker='o', markersize=40)
 
     for i in range(len(route) - 1):
         x1, y1 = coords[route[i]]
         x2, y2 = coords[route[i + 1]]
         plt.plot([x1, x2], [y1, y2], color='red', linewidth=2)
+        xm, ym = (x1 + x2) / 2, (y1 + y2) / 2
+        dx, dy = x2 - x1, y2 - y1
+        ax.annotate('', xy=(xm + 0.0001 * dx, ym + 0.0001 * dy), xytext=(xm - 0.0001 * dx, ym - 0.0001 * dy),
+                    arrowprops=dict(arrowstyle="->", color='red', lw=1.5))
 
+    lat_vals = [coords[i][0] for i in route]
+    lon_vals = [coords[i][1] for i in route]
+    lat_center, lon_center = (min(lat_vals) + max(lat_vals)) / 2, (min(lon_vals) + max(lon_vals)) / 2
+    span = max(max(lat_vals) - min(lat_vals), max(lon_vals) - min(lon_vals)) * 1.2 or 0.01
+    ax.set_xlim(lat_center - span / 2, lat_center + span / 2)
+    ax.set_ylim(lon_center - span / 2, lon_center + span / 2)
     ctx.add_basemap(ax, crs='EPSG:4326', source=ctx.providers.OpenStreetMap.Mapnik)
-    ax.set_axis_off()
-
+    depot_x, depot_y = coords[route[0]]
+    ax.plot(depot_x, depot_y, marker='o', markersize=15, color='blue', zorder=3)
     map_filename = f'route_map_{idx}.png'
-    plt.title(f'Optimized Pharmacy Delivery Route - Truck {idx}')
-    plt.savefig(map_filename, dpi=300)
+    plt.title(f'Delivery Route - Truck {idx}')
+    plt.tight_layout()
+    plt.savefig(map_filename, dpi=300, bbox_inches='tight', pad_inches=0)
     plt.close()
 
-    # 4.2 Création de la table des étapes de la route
-    table_data = [
-        [i + 1, names[route[i]], addresses[route[i]]]
-        for i in range(len(route))
-    ]
-    df = pd.DataFrame(table_data, columns=['Order', 'Pharmacy', 'Address'])
-
-    # 4.3 Génération du PDF avec carte et détails
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font('Helvetica', 'B', 16)
-    pdf.cell(200, 10, 'Pharmacy Delivery Route', align='C', ln=True)
-    pdf.image(map_filename, x=10, y=20, w=190)
+    pdf.cell(200, 10, 'Pharmacy Delivery Route', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+    pdf_width = 100
+    with Image.open(map_filename) as img:
+        img_width, img_height = img.size
+        aspect = img_height / img_width
+        pdf_height = min(100, pdf_width * aspect)
+        pdf_width = pdf_height / aspect if pdf_height == 100 else pdf_width
+        pdf_x = (210 - pdf_width) / 2
+        pdf.image(map_filename, x=pdf_x, y=30, w=pdf_width, h=pdf_height)
 
-    pdf.set_y(150)
-    pdf.set_font('Helvetica', 'B', 12)
-    pdf.cell(200, 10, 'Route Details', ln=True)
-    pdf.set_font('Helvetica', '', 12)
+    pdf.set_y(30 + pdf_height + 10)
+    row_height = 7
+    col_widths = [70, 80, 20, 20]
+    pdf.set_font('Helvetica', 'B', 9)
+    pdf.cell(col_widths[0], row_height, f"Parcours camionnette {idx}", border=1, align='C')
+    pdf.cell(col_widths[1], row_height, "Address", border=1, align='C')
+    pdf.cell(col_widths[2], row_height, "Arrival", border=1, align='C')
+    pdf.cell(col_widths[3], row_height, "Departure", border=1, align='C')
+    pdf.ln()
+    pdf.set_font('Helvetica', '', 9)
 
-    for _, row in df.iterrows():
-        pdf.cell(
-            200,
-            10,
-            f"{row['Order']} - {row['Pharmacy']}, {row['Address']}",
-            ln=True
-        )
+    for i in range(len(route)):
+        pharmacy_index = route[i]
+        name = names[pharmacy_index]
+        address = addresses[pharmacy_index]
+        arrival, departure = all_schedules[idx - 1][i]
+        if i == 0:
+            name = "Départ entrepôt Cerp"
+            arrival = ""
+        elif i == len(route) - 1:
+            name = "Retour entrepôt Cerp"
+            departure = ""
+        pdf.cell(col_widths[0], row_height, name, border=1)
+        pdf.cell(col_widths[1], row_height, address, border=1)
+        pdf.cell(col_widths[2], row_height, arrival, border=1, align='C')
+        pdf.cell(col_widths[3], row_height, departure, border=1, align='C')
+        pdf.ln(row_height)
+
+    total_distance_m = sum(df_dist.iloc[route[i], route[i + 1]] for i in range(len(route) - 1))
+    total_distance_km = total_distance_m / 1000
+    fuel_consumed = total_distance_km * (8.5 / 100)
+    fuel_cost = fuel_consumed * 1.72
+    pdf.ln(5)
+    pdf.set_font('Helvetica', 'B', 11)
+    pdf.cell(0, 8, f"Total distance : {total_distance_km:.0f} km", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, f"Estimated fuel consumption : {fuel_consumed:.2f}L (8.5 L / 100km)", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, f"Fuel price : {fuel_cost:.2f} euros (diesel : 1.72 euros / L)", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf_filename = f'route_camion_{idx}.pdf'
     pdf.output(pdf_filename)
