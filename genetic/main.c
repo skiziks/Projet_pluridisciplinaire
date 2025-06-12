@@ -142,6 +142,13 @@ int main(int argc, char* argv[]) {
 
     double min_score = environments[0][0]->score;
     int min = 0;
+    for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
+        printf("Environment %d: %f\n", env, environments[env][0]->score);
+        if (environments[env][0]->score < min_score) {
+            min_score = environments[env][0]->score;
+            min = env;
+        }
+    }
 
     printf("\n\nBest env : %d\n\n", min);
 

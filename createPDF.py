@@ -1,4 +1,5 @@
 import os
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import geopandas as gpd
@@ -6,12 +7,17 @@ from fpdf import FPDF, XPos, YPos
 
 import contextily as ctx
 
+import sys
+
 # coords = []
 # names = []
 # addresses = []
 
+pharma_folder = sys.argv[1] if len(sys.argv) > 1 else "livraison85"
+output_file = sys.argv[2] if len(sys.argv) > 2 else "output.txt"
+
 # Read the pharmacy data from CSV
-df_pharma = pd.read_csv("livraison85/pharmacies_etudiees.csv", header=None)
+df_pharma = pd.read_csv(pharma_folder + "/pharmacies_etudiees.csv", header=None)
 df_pharma.columns = ['Name', 'Address', 'Latitude', 'Longitude']
 
 names = df_pharma['Name'].tolist()
@@ -32,7 +38,7 @@ def read_routes(file_path):
     with open(file_path, 'r') as file:
         return [list(map(int, line.strip().split())) for line in file if line.strip()]
 
-all_routes = read_routes('output.txt')
+all_routes = read_routes(output_file)
 
 
 # Generate a pdf for each route
