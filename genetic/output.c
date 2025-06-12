@@ -7,7 +7,7 @@ void write_output_to_file(TabScore *ts, double **dist_matrix, double **time_matr
     int started = 0;
     for (i = 0; i < N + NB_TRUCKS_MAX; i++) {
         if (ts->tab[i] > 0) {
-            if((ts->tab[i - 1] <= 0 || (i == 0 && ts->tab[i - 1] > 0)) && !started) {
+            if(!started) {
                 started = 1;
                 fputc('0', file);
                 fputc(' ', file);
