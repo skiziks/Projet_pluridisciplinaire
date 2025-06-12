@@ -5,9 +5,14 @@ import geopandas as gpd
 from fpdf import FPDF, XPos, YPos
 import contextily as ctx
 from PIL import Image
+from datetime import datetime, timedelta
 
 
-# Read the pharmacy data from CSV
+#####################################################################
+#################             LOAD DATA             #################
+
+
+# Load pharmacies
 df_pharma = pd.read_csv("livraison85/pharmacies_etudiees.csv", header=None)
 df_pharma.columns = ['Name', 'Address', 'Latitude', 'Longitude']
 
@@ -15,11 +20,20 @@ names = df_pharma['Name'].tolist()
 addresses = df_pharma['Address'].tolist()
 coords = list(zip(df_pharma['Latitude'].tolist(), df_pharma['Longitude'].tolist()))
 
+# Load travel time matrix
+df_times = pd.read_csv("livraison85/matrice_durees_s.csv", sep=' ', header=None)
+df_dist = pd.read_csv("livraison85/matrice_distances_m.csv", sep=' ', header=None)
+
+#Load 
+
+# Load routes from output.txt
 def read_routes(file_path):
     with open(file_path, 'r') as file:
         return [list(map(int, line.strip().split())) for line in file if line.strip()]
 
 all_routes = read_routes('output.txt')
+
+
 
 #####################################################################
 ####################             MAP             ####################
@@ -67,7 +81,7 @@ for idx, route in enumerate(all_routes, start=1):
     ax.set_axis_off()
 
     map_filename = f'route_map_{idx}.png'
-    plt.title(f'Optimized Pharmacy Delivery Route - Truck {idx}')
+    plt.title(f'Delivery Route - Truck {idx}')
     plt.tight_layout()
     plt.savefig(map_filename, dpi=300, bbox_inches='tight', pad_inches=0)
     plt.close()
@@ -97,6 +111,71 @@ for idx, route in enumerate(all_routes, start=1):
         pdf_x = (210 - pdf_width) / 2  # Center horizontally
         pdf.image(map_filename, x=pdf_x, y=30, w=pdf_width, h=pdf_height)
 
+    
+    
+    #####################################################################
+    ###########             SCHEDULE  CALCULATION             ###########
+
+    def compute_schedule_with_time_windows(routes, matrix, delivery_duration=180):
+        """
+        Compute schedules for all routes, enforcing:
+        - Morning: 09:00–12:00 (even route index)
+        - Afternoon: 15:00–18:00 (odd route index)
+        """
+        all_schedules = []
+
+        for route_index, route in enumerate(routes):
+            # Choose window based on route index
+            if route_index % 2 == 0:
+                start_time = datetime.strptime("09:00", "%H:%M")
+                end_time = datetime.strptime("12:00", "%H:%M")
+            else:
+                start_time = datetime.strptime("15:00", "%H:%M")
+                end_time = datetime.strptime("18:00", "%H:%M")
+
+            current_time = start_time
+            schedule = []
+
+            for i in range(len(route)):
+                if i == 0:
+                    arrival = current_time
+                else:
+                    travel_time = int(matrix.iloc[route[i - 1], route[i]])
+                    arrival = current_time + timedelta(seconds=travel_time)
+
+                departure = arrival + timedelta(seconds=delivery_duration)
+
+                # if departure > end_time:
+                #     arrival_str = departure_str = "Too late"
+                #     schedule.append((arrival_str, departure_str))
+                #     break
+
+                schedule.append((arrival.strftime("%H:%M"), departure.strftime("%H:%M")))
+                current_time = departure
+
+            all_schedules.append(schedule)
+
+        return all_schedules
+
+
+    all_schedules = compute_schedule_with_time_windows(all_routes, df_times)
+
+
+    # # Example usage:
+    # for i, (route, schedule) in enumerate(zip(all_routes, all_schedules)):
+    #     print(f"🛻 Route {i + 1}:")
+    #     for idx, (pharmacy_index, (arrival, departure)) in enumerate(zip(route, schedule)):
+    #         name = df_pharma.iloc[pharmacy_index]['Name']
+    #         if idx == 0:
+    #             name = "Départ entrepôt Cerp"
+    #         elif idx == len(route) - 1:
+    #             name = "Retour entrepôt Cerp"
+
+    #         print(f"  {arrival} - {departure}  |  {name}")
+    #     print()
+
+    
+    
     #####################################################################
     ###################             TABLE             ###################
     
@@ -130,21 +209,60 @@ for idx, route in enumerate(all_routes, start=1):
     # Content rows
     pdf.set_font('Helvetica', '', 9)
     for i in range(len(route)):
-        name = names[route[i]]
-        address = addresses[route[i]]
+        pharmacy_index = route[i]
+        name = names[pharmacy_index]
+        address = addresses[pharmacy_index]
 
-        # Custom labels for first and last rows
         if i == 0:
             name = "Départ entrepôt Cerp"
         elif i == len(route) - 1:
             name = "Retour entrepôt Cerp"
 
+        try:
+            arrival, departure = all_schedules[idx - 1][i]
+        except IndexError:
+            arrival, departure = ("-", "-")
+
+        if i == 0:
+            name = "Départ entrepôt Cerp"
+            arrival = ""
+        elif i == len(route) - 1:
+            name = "Retour entrepôt Cerp"
+            departure = ""
+
         pdf.cell(col_widths[0], row_height, name, border=1)
         pdf.cell(col_widths[1], row_height, address, border=1)
-        pdf.cell(col_widths[2], row_height, "", border=1)
-        pdf.cell(col_widths[3], row_height, "", border=1)
+        pdf.cell(col_widths[2], row_height, arrival, border=1, align='C')
+        pdf.cell(col_widths[3], row_height, departure, border=1, align='C')
         pdf.ln(row_height)
         
+    
+    #####################################################################
+    ###########              DISTANCE + FUEL INFO             ###########
+
+    # Compute total distance for a route (in meters)
+    total_distance_m = 0
+    for i in range(len(route) - 1):
+        total_distance_m += df_dist.iloc[route[i], route[i + 1]]
+
+    # Convert meters to kilometers
+    total_distance_km = total_distance_m / 1000
+
+    # Fuel consumption: 8.5 L/100km
+    fuel_consumed = total_distance_km * (8.5 / 100)
+
+    # Fuel price: 1.72 €/L
+    fuel_cost = fuel_consumed * 1.72
+
+    # Move down a little
+    pdf.ln(5)
+    pdf.set_font('Helvetica', 'B', 11)
+
+    pdf.cell(0, 8, f"Total distance : {total_distance_km:.0f} km", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, f"Estimated fuel consumption : {fuel_consumed:.2f}L (8.5 L / 100km)", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, f"Fuel price : {fuel_cost:.2f} euros (diesel : 1.72 euros / L)", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    
+    
     pdf_filename = f'route_camion_{idx}.pdf'
     pdf.output(pdf_filename)
     print(f"PDF generated: {pdf_filename}")
