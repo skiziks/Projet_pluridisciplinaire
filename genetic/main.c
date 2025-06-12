@@ -56,8 +56,8 @@ void print_info(TabScore *ts, double **dist_matrix, double **time_matrix, int N)
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        fprintf(stderr, "Usage: %s <time_limit_in_seconds> <folder_path>\n", argv[0]);
+    if (argc < 4) {
+        fprintf(stderr, "Usage: %s <time_limit_in_seconds> <folder_path> <output file>\n", argv[0]);
         return 1;
     }
 
@@ -84,6 +84,9 @@ int main(int argc, char* argv[]) {
     char phar[MAX_PATH_LENGTH] = "";
     strcat(phar, argv[2]);
     strcat(phar, "/pharmacies_etudiees.csv");
+
+    char output_path[MAX_PATH_LENGTH] = "";
+    strcat(output_path, argv[3]);
 
     int N = count_matrix_size(durees) - 1;
 
@@ -193,7 +196,6 @@ int main(int argc, char* argv[]) {
 
     print_info(environments[min][0], matrix, time_matrix, N);
 
-    const char *output_path = "../output.txt";
     write_output_to_file(environments[min][0], matrix, time_matrix, N, output_path);
     printf("Best environment's output written to %s\n", output_path);
 
