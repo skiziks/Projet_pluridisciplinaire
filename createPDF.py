@@ -1,60 +1,51 @@
 import os
-
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 import geopandas as gpd
-from fpdf import FPDF, XPos, YPos
-
+from fpdf import FPDF
 import contextily as ctx
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-import sys
 
-# coords = []
-# names = []
-# addresses = []
+# === 1. Récupération des arguments : dossier et fichier de routes ===
+if len(sys.argv) != 3:
+    print("Usage: python createPDF.py <dossier_livraison> <fichier_output.txt>")
+    sys.exit(1)
 
-pharma_folder = sys.argv[1] if len(sys.argv) > 1 else "livraison85"
-output_file = sys.argv[2] if len(sys.argv) > 2 else "output.txt"
+folder = sys.argv[1]
+output_file = sys.argv[2]
+pharma_csv_path = os.path.join(folder, "pharmacies_etudiees.csv")
 
-# Read the pharmacy data from CSV
-df_pharma = pd.read_csv(pharma_folder + "/pharmacies_etudiees.csv", header=None)
+# === 2. Chargement des données des pharmacies ===
+df_pharma = pd.read_csv(pharma_csv_path, header=None)
 df_pharma.columns = ['Name', 'Address', 'Latitude', 'Longitude']
 
 names = df_pharma['Name'].tolist()
 addresses = df_pharma['Address'].tolist()
 coords = list(zip(df_pharma['Latitude'].tolist(), df_pharma['Longitude'].tolist()))
 
-# with open('pharmacies_etudiees.csv', 'r') as file:
-#     for line in file:
-#         parts = line.strip().split(',')
-#         names.append(parts[0])
-#         addresses.append(parts[1])
-#         coords.append((float(parts[2]), float(parts[3])))
-
-# Read all routes
-# with open('paths.txt', 'r') as file:
-#     all_routes = [list(map(int, line.strip().split())) for line in file if line.strip()]
+# === 3. Lecture des routes optimisées ===
 def read_routes(file_path):
     with open(file_path, 'r') as file:
         return [list(map(int, line.strip().split())) for line in file if line.strip()]
 
 all_routes = read_routes(output_file)
 
-
-# Generate a pdf for each route
+# === 4. Génération d'un PDF avec carte et détails pour chaque route ===
 for idx, route in enumerate(all_routes, start=1):
-    # Generate map
+    # 4.1 Génération de la carte avec les points et les lignes de la route
     fig, ax = plt.subplots()
 
     gdf = gpd.GeoDataFrame(
         geometry=gpd.points_from_xy(
-            [coords[i][0] for i in route], 
-            [coords[i][1] for i in route])
+            [coords[i][0] for i in route],
+            [coords[i][1] for i in route]
+        )
     )
     gdf.plot(ax=ax, color='black', marker='o', markersize=40)
 
-
-    # Draw the route
     for i in range(len(route) - 1):
         x1, y1 = coords[route[i]]
         x2, y2 = coords[route[i + 1]]
@@ -63,46 +54,38 @@ for idx, route in enumerate(all_routes, start=1):
     ctx.add_basemap(ax, crs='EPSG:4326', source=ctx.providers.OpenStreetMap.Mapnik)
     ax.set_axis_off()
 
-    # plt.title('Optimized Pharmacy Delivery Route')
-    # plt.savefig('route_map.png', dpi=300)
     map_filename = f'route_map_{idx}.png'
     plt.title(f'Optimized Pharmacy Delivery Route - Truck {idx}')
     plt.savefig(map_filename, dpi=300)
     plt.close()
 
-    # Create the summary table
+    # 4.2 Création de la table des étapes de la route
     table_data = [
-        [i + 1, names[route[i]], addresses[route[i]]] 
-        for i in range(len(route))]
+        [i + 1, names[route[i]], addresses[route[i]]]
+        for i in range(len(route))
+    ]
     df = pd.DataFrame(table_data, columns=['Order', 'Pharmacy', 'Address'])
 
-    # Create PDF object
+    # 4.3 Génération du PDF avec carte et détails
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font('Helvetica', 'B', 16)  
-    pdf.cell(200, 10, 'Pharmacy Delivery Route', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+    pdf.set_font('Helvetica', 'B', 16)
+    pdf.cell(200, 10, 'Pharmacy Delivery Route', align='C', ln=True)
     pdf.image(map_filename, x=10, y=20, w=190)
 
     pdf.set_y(150)
-    pdf.set_font('Helvetica', 'B', 12) 
-    pdf.cell(200, 10, 'Route Details', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.set_font('Helvetica', '', 12) 
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.cell(200, 10, 'Route Details', ln=True)
+    pdf.set_font('Helvetica', '', 12)
 
     for _, row in df.iterrows():
         pdf.cell(
-            200, 
-            10, 
-            f"{row['Order']} - {row['Pharmacy']}, {row['Address']}", 
-            new_x=XPos.LMARGIN, 
-            new_y=YPos.NEXT)
-
-
-    # Save the PDF
-    # pdf.output('route_summary_1.pdf')
-    # print("PDF generated.")
+            200,
+            10,
+            f"{row['Order']} - {row['Pharmacy']}, {row['Address']}",
+            ln=True
+        )
 
     pdf_filename = f'route_camion_{idx}.pdf'
     pdf.output(pdf_filename)
     print(f"PDF generated: {pdf_filename}")
-
-

@@ -1,0 +1,7 @@
+requests
+numpy
+geopandas
+matplotlib
+pandas
+contextily
+fpdf2

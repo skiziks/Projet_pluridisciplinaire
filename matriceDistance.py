@@ -1,16 +1,42 @@
+import argparse
 import requests
 import numpy as np
 import time
 import csv
-import math
+import os
 
 ORS_API_KEY = "5b3ce3597851110001cf62481f7fe86c591e473c9e5474ca97c2263a"
 
+# === 1. Argument : fichier CSV à traiter ===
+parser = argparse.ArgumentParser(description="Génère une matrice de distances et durées à partir d'un CSV d'adresses.")
+parser.add_argument("csv_file", help="Chemin vers le fichier CSV d'entrée")
+args = parser.parse_args()
+input_csv_path = args.csv_file
+
+# === 1.1 Vérification et insertion éventuelle de l'adresse de dépôt en première ligne ===
+entrepot_ligne = ["Départ entrepôt Cerp", "600 Rue des Madeleines", "77100", "Mareuil-lès-Meaux"]
+entrepot_str = ",".join(entrepot_ligne)
+
+with open(input_csv_path, newline='') as f:
+    lines = f.readlines()
+
+if not lines or "600 Rue des Madeleines" not in lines[0]:
+    lines.insert(0, entrepot_str + "\n")
+    with open(input_csv_path, "w", newline='') as f:
+        f.writelines(lines)
+
+# === 2. Création du dossier de sortie à la racine du projet ===
+base_filename = os.path.basename(input_csv_path)
+folder_name = os.path.splitext(base_filename)[0]
+project_root = os.path.abspath(os.path.dirname(__file__))
+output_dir = os.path.join(project_root, folder_name)
+os.makedirs(output_dir, exist_ok=True)
+
+# === 3. Lecture et géocodage avec Nominatim ===
 coords = []
 noms = []
 
-# Étape 1 : Lecture + géocodage avec Nominatim
-with open('livraison/livraison10.csv', newline='') as csvfile:
+with open(input_csv_path, newline='') as csvfile:
     for line in csvfile:
         line = line.strip()
         row = line.split(',')
@@ -19,17 +45,11 @@ with open('livraison/livraison10.csv', newline='') as csvfile:
         postal = row[2]
         ville = row[3]
 
-        # Appel à Nominatim
         adresse_complete = f"{adresse}, {postal} {ville}"
         url = "https://nominatim.openstreetmap.org/search"
-        params = {
-            "q": adresse_complete,
-            "format": "json",
-            "limit": 1
-        }
+        params = {"q": adresse_complete, "format": "json", "limit": 1}
         headers = {"User-Agent": "test/1.0 (email@mail.com)"}
         response = requests.get(url, headers=headers, params=params)
-
         time.sleep(1)
 
         data = response.json()
@@ -38,19 +58,10 @@ with open('livraison/livraison10.csv', newline='') as csvfile:
             lat = float(data[0]['lat'])
             coords.append([lon, lat])
             noms.append((nom, adresse, lon, lat))
-
         else:
-            # Si l'adresse complète ne fonctionne pas, essayer avec ville et code postal
             adresseVille = f"{ville}, {postal}"
-            url= "https://nominatim.openstreetmap.org/search"
-            params = {
-                "q": adresseVille,
-                "format": "json",
-                "limit": 1
-            }
-            headers = {"User-Agent": "test/1.0 (email@mail.com)"}
+            params = {"q": adresseVille, "format": "json", "limit": 1}
             response = requests.get(url, headers=headers, params=params)
-
             time.sleep(1)
 
             data = response.json()
@@ -63,22 +74,22 @@ with open('livraison/livraison10.csv', newline='') as csvfile:
                 print(f"Adresse non trouvée : {adresse} {postal}")
                 coords.append(None)
 
-# Étape 2 : Filtrage des coordonnées valides
+# === 4. Filtrage des coordonnées valides ===
 coords_valides = [c for c in coords if c is not None]
 noms_valides = [n for i, n in enumerate(noms) if coords[i] is not None]
 
 N = len(coords_valides)
-B = 10 
+B = 10
 distances = np.zeros((N, N), dtype=int)
 durations = np.zeros((N, N), dtype=int)
 
-
-# Étape 3 : Appel à l’API OpenRouteService pour créer la matrice
+# === 5. Appels à OpenRouteService pour générer la matrice de distances et durées ===
 ors_url = "https://api.openrouteservice.org/v2/matrix/driving-car"
 headers = {
     "Authorization": ORS_API_KEY,
     "Content-Type": "application/json"
 }
+
 for i_start in range(0, N, B):
     for j_start in range(0, N, B):
         i_end = min(i_start + B, N)
@@ -96,7 +107,7 @@ for i_start in range(0, N, B):
         }
 
         response = requests.post(ors_url, json=body, headers=headers)
-        time.sleep(1)  # respecter les limites
+        time.sleep(1)
 
         if response.status_code != 200:
             print(f"Erreur ORS ({i_start}-{i_end}, {j_start}-{j_end}) :", response.status_code)
@@ -104,40 +115,30 @@ for i_start in range(0, N, B):
             exit(1)
 
         result = response.json()
-
         dist_block = np.array(result["distances"])
         dur_block = np.array(result["durations"])
 
         distances[i_start:i_end, j_start:j_end] = dist_block
         durations[i_start:i_end, j_start:j_end] = dur_block
 
-        print(f"✅ Bloc [{i_start}:{i_end}, {j_start}:{j_end}] rempli")
+        print(f"Bloc [{i_start}:{i_end}, {j_start}:{j_end}] rempli")
 
-
-# Étape 4 : Écriture des résultats dans des CSV
-
-# 1. Coordonnées valides avec nom et adresse
-with open("livraison10/pharmacies_etudiees.csv", "w", newline="") as f:
+# === 6. Écriture des fichiers résultats ===
+with open(os.path.join(output_dir, "pharmacies_etudiees.csv"), "w", newline="") as f:
     writer = csv.writer(f)
     for i, c in enumerate(coords):
         if c is not None:
             nom, adresse, lon, lat = noms[i]
             writer.writerow([nom, adresse, lon, lat])
 
-
-# 2. Matrice des distances (en mètres)
-with open("livraison10/matrice_distances_m.csv", "w", newline="") as f:
+with open(os.path.join(output_dir, "matrice_distances_m.csv"), "w", newline="") as f:
     for row in distances:
         row_str = ' '.join(str(int(val)) for val in row)
         f.write(row_str + '\n')
 
-# 3. Matrice des durées (en secondes)
-with open("livraison10/matrice_durees_s.csv", "w", newline="") as f:
+with open(os.path.join(output_dir, "matrice_durees_s.csv"), "w", newline="") as f:
     for row in durations:
         row_str = ' '.join(str(int(val)) for val in row)
         f.write(row_str + '\n')
 
-
-print("- pharmacies_etudiees.csv")
-print("- matrice_distances.csv")
-print("- matrice_durees.csv")
+print("Fichiers générés dans :", output_dir)
