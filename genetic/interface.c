@@ -8,9 +8,6 @@
 #define BASE_X 0
 #define BASE_Y 0
 
-#define MUL_X 300
-#define MUL_Y 300
-
 #define MIN_X 48.4
 #define MIN_Y 2.5
 
@@ -58,14 +55,14 @@ void show_path(Point* tab[], int tab_points[], MLV_Color color[], int nb_colors,
     if (with_circle) {
       MLV_draw_filled_circle(x(point->lat) + offsetX, y(point->lon) + offsetY, 3, point->id > 0 ?MLV_rgba(255,255,255,255):MLV_rgba(0,255,0,255));
       sprintf(str, "%d", point->id);
-     /* MLV_draw_text(x(point->lat) + offsetX, y(point->lon) + offsetY, str, MLV_COLOR_WHITE);*/
+      MLV_draw_text(x(point->lat) + offsetX, y(point->lon) + offsetY, str, MLV_COLOR_WHITE);
     }
     
       MLV_draw_line(x(tab[z(tab_points[i-1])]->lat) + offsetX, y(tab[z(tab_points[i-1])]->lon) + offsetY,
                   x(point->lat) + offsetX, y(point->lon) + offsetY,
                   color[camion%nb_colors]);
 
-    if (point->id <= 0 && i != 0 && i != N + NB_TRUCKS_MAX) {
+    if (point->id <= 0 && i != 0 && i != N + NB_TRUCKS_MAX + 1) {
       camion++;
     }
   }

@@ -5,8 +5,11 @@
 #include "matrix.h"
 #include "genetic_utils.h"
 
-#define HEIGHT_WINDOWS_PIX 800
-#define WIDTH_WINDOWS_PIX 1600
+#define HEIGHT_WINDOWS_PIX 900
+#define WIDTH_WINDOWS_PIX 1000
+
+#define MUL_X 450
+#define MUL_Y 450
 
 
 #define WAIT_TIME_MILLISEC 500

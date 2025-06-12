@@ -78,9 +78,9 @@ void two_opt(int tab[], int N) {
 void mutate(int tab[], int N) {
     int r = rand() % 100;
 
-    if (r < 40) {
+    if (r < 35) {
         permute_tab(tab, r % 5 + 1, N);
-    } else if (r < 70) {
+    } else if (r < 60) {
         move_in_tab(tab, N);
     } else {
         two_opt(tab, N);

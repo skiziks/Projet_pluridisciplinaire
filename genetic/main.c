@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <math.h>
 #include <MLV/MLV_all.h>
@@ -8,8 +9,8 @@
 #include "input.h"
 #include "output.h"
 
-#define NB_INDIVIDU 20000
-#define NB_ENVIRONMENTS 5
+#define NB_INDIVIDU 30000
+#define NB_ENVIRONMENTS 4
 #define INDIVIDUALS_PER_ENVIRONMENT (NB_INDIVIDU / NB_ENVIRONMENTS)
 
 #define PERCENT_REPRODUCTION 1
@@ -22,6 +23,9 @@
 #define IND_CROSSOVER (INDIVIDUALS_PER_ENVIRONMENT * PERCENT_CROSSOVER / 100 + IND_MUTATE)
 #define PERCENT_NEW 20
 #define IND_NEW (INDIVIDUALS_PER_ENVIRONMENT * PERCENT_NEW / 100 + IND_CROSSOVER)
+
+
+#define MAX_PATH_LENGTH 1024
 
 void fill_color_10(MLV_Color colors[], int i) {
     colors[0] = MLV_rgba(255-i, 0, 0, 255);
@@ -52,8 +56,8 @@ void print_info(TabScore *ts, double **dist_matrix, double **time_matrix, int N)
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s <time_limit_in_seconds>\n", argv[0]);
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s <time_limit_in_seconds> <folder_path>\n", argv[0]);
         return 1;
     }
 
@@ -67,11 +71,25 @@ int main(int argc, char* argv[]) {
 
     create_windows();
 
-    int N = count_matrix_size("../livraison85/matrice_durees_s.csv") - 1;
+    char durees[MAX_PATH_LENGTH] = "";
+    strcat(durees, argv[2]);
+    strcat(durees, "/matrice_durees_s.csv");
 
-    double **time_matrix = get_time_seconds_matrix_from_file("../livraison85/matrice_durees_s.csv");
-    double **matrix = get_distance_meters_matrix_from_file("../livraison85/matrice_distances_m.csv");
-    Point** points = get_points_tab_from_file("../livraison85/pharmacies_etudiees.csv");
+    printf("%s\n", durees);
+
+    char distances[MAX_PATH_LENGTH] = "";
+    strcat(distances, argv[2]);
+    strcat(distances, "/matrice_distances_m.csv");
+
+    char phar[MAX_PATH_LENGTH] = "";
+    strcat(phar, argv[2]);
+    strcat(phar, "/pharmacies_etudiees.csv");
+
+    int N = count_matrix_size(durees) - 1;
+
+    double **time_matrix = get_time_seconds_matrix_from_file(durees);
+    double **matrix = get_distance_meters_matrix_from_file(distances);
+    Point** points = get_points_tab_from_file(phar);
 
     Point** tab1 = copy_with_trucks(points, N);
     free(points);
@@ -131,12 +149,13 @@ int main(int argc, char* argv[]) {
             copy_children_to_parents(environments[env], children[env], INDIVIDUALS_PER_ENVIRONMENT);
         }
 
+        /*
         if (s % 30 == 0) {
             clear_window();
             for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
                 for (int i = 50; i >= 0; i -= 1) {
                     fill_color_10(colors, i * 5);
-                    show_path(tab1, environments[env][i]->tab, colors, 10, i == 0, N, 300 * (env % 5), 400 * (env / 5));
+                    show_path(tab1, environments[env][i]->tab, colors, 10, i == 0, N, MUL_X * (env % (WIDTH_WINDOWS_PIX/MUL_X)), MUL_Y * (env / (WIDTH_WINDOWS_PIX/MUL_X)));
                 }
             }
         }
@@ -146,7 +165,7 @@ int main(int argc, char* argv[]) {
         for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
             printf("Env %d: %f ", env, environments[env][0]->score);
         }
-        printf("\n");
+        printf("\n");*/
 
         s++;
     }
@@ -163,7 +182,7 @@ int main(int argc, char* argv[]) {
             min = env;
         }
         fill_color_10(colors, 0);
-        show_path(tab1, environments[env][0]->tab, colors, 10, 1, N, 300 * (env % 5), 400 * (env / 5));
+        show_path(tab1, environments[env][0]->tab, colors, 10, 1, N, MUL_X * (env % (WIDTH_WINDOWS_PIX/MUL_X)), MUL_Y * (env / (WIDTH_WINDOWS_PIX/MUL_X)));
         printf("Environment %d: Best score: %f\n", env, environments[env][0]->score);
         print_array(environments[env][0]->tab, matrix, time_matrix, N);
     }

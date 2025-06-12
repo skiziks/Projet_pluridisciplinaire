@@ -41,14 +41,14 @@ Point** copy_with_trucks(Point* tab[], int N) {
     Point** tab2 = malloc(sizeof(Point*) * (N + NB_TRUCKS_MAX + 1));
 
     int i;
-    for(i=0;i<N;++i) {
+    for(i=0;i<N+1;++i) {
         tab2[i] = malloc(sizeof(Point));
         tab2[i]->id = tab[i]->id;
         tab2[i]->lat = tab[i]->lat;
         tab2[i]->lon = tab[i]->lon;
     }
     
-    for(i=N;i<N+NB_TRUCKS_MAX+1;++i) {
+    for(i=N+1;i<N+NB_TRUCKS_MAX+1;++i) {
         tab2[i] = tab2[0];
     }
 
