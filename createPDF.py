@@ -39,7 +39,6 @@ all_routes = read_routes('output.txt')
 ####################             MAP             ####################
     
 
-
 # Generate a pdf for each route
 for idx, route in enumerate(all_routes, start=1):
     # Generate map
@@ -116,6 +115,7 @@ for idx, route in enumerate(all_routes, start=1):
     #####################################################################
     ###########             SCHEDULE  CALCULATION             ###########
 
+
     def compute_schedule_with_time_windows(routes, matrix, delivery_duration=180):
         """
         Compute schedules for all routes, enforcing:
@@ -160,21 +160,6 @@ for idx, route in enumerate(all_routes, start=1):
 
     all_schedules = compute_schedule_with_time_windows(all_routes, df_times)
 
-
-    # # Example usage:
-    # for i, (route, schedule) in enumerate(zip(all_routes, all_schedules)):
-    #     print(f"🛻 Route {i + 1}:")
-    #     for idx, (pharmacy_index, (arrival, departure)) in enumerate(zip(route, schedule)):
-    #         name = df_pharma.iloc[pharmacy_index]['Name']
-    #         if idx == 0:
-    #             name = "Départ entrepôt Cerp"
-    #         elif idx == len(route) - 1:
-    #             name = "Retour entrepôt Cerp"
-
-    #         print(f"  {arrival} - {departure}  |  {name}")
-    #     print()
-
-    
     
     #####################################################################
     ###################             TABLE             ###################
