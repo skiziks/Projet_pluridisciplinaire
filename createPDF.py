@@ -22,13 +22,13 @@ names = df_pharma['Name'].tolist()
 addresses = df_pharma['Address'].tolist()
 coords = list(zip(df_pharma['Latitude'].tolist(), df_pharma['Longitude'].tolist()))
 
-# Load travel time matrix
+# Load travel time 
 df_times = pd.read_csv("livraison85/matrice_durees_s.csv", sep=' ', header=None)
+
+#Load distances
 df_dist = pd.read_csv("livraison85/matrice_distances_m.csv", sep=' ', header=None)
 
-#Load 
-
-# Load routes from output.txt
+# Load routes 
 def read_routes(file_path):
     with open(file_path, 'r') as file:
         return [list(map(int, line.strip().split())) for line in file if line.strip()]
@@ -140,12 +140,15 @@ for idx, route in enumerate(all_routes, start=1):
             for i in range(len(route)):
                 if i == 0:
                     arrival = current_time
+                    departure = current_time
                 else:
                     travel_time = int(matrix.iloc[route[i-1], route[i]])
                     arrival = current_time + timedelta(seconds=travel_time)
-                departure = arrival + timedelta(seconds=delivery_duration)
+                    departure   = arrival + timedelta(seconds=delivery_duration)
+                
                 schedule.append((arrival.strftime("%H:%M"), departure.strftime("%H:%M")))
                 current_time = departure
+                
             all_schedules.append(schedule)
         return all_schedules
 
