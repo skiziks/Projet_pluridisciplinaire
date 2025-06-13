@@ -76,6 +76,8 @@ int main(int argc, char* argv[]) {
 
     int N = count_matrix_size(durees) - 1;
 
+    time_limit = N/10*8;
+
     double **time_matrix = get_time_seconds_matrix_from_file(durees);
     double **matrix = get_distance_meters_matrix_from_file(distances);
     Point** points = get_points_tab_from_file(phar);
@@ -97,7 +99,6 @@ int main(int argc, char* argv[]) {
         quick_sort_children(environments[env], 0, INDIVIDUALS_PER_ENVIRONMENT - 1);
     }
     int s = 0;
-
     while (difftime(time(NULL), start_time) < time_limit) {
         for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
             TabScore* parent1;
@@ -136,26 +137,30 @@ int main(int argc, char* argv[]) {
         }
 
         s++;
+        printf("\rTemps restant : %ld secondes, generation %d atteinte.    ", time_limit - (long)difftime(time(NULL), start_time), s);
+        fflush(stdout);
     }
+    printf("\r\n");
 
-    printf("Best scores per environment:\n");
+    
+    /*printf("Best scores per environment:\n");*/
 
     double min_score = environments[0][0]->score;
     int min = 0;
     for (int env = 0; env < NB_ENVIRONMENTS; ++env) {
-        printf("Environment %d: %f\n", env, environments[env][0]->score);
+        /*printf("Environment %d: %f\n", env, environments[env][0]->score);*/
         if (environments[env][0]->score < min_score) {
             min_score = environments[env][0]->score;
             min = env;
         }
     }
 
-    printf("\n\nBest env : %d\n\n", min);
+    /*printf("\n\nBest env : %d\n\n", min);
 
-    print_info(environments[min][0], matrix, time_matrix, N);
+    print_info(environments[min][0], matrix, time_matrix, N);*/
 
     write_output_to_file(environments[min][0], matrix, time_matrix, N, output_path);
-    printf("Best environment's output written to %s\n", output_path);
+    /*printf("Best environment's output written to %s\n", output_path);*/
 
     int i;
     for (int env = 0; env < NB_ENVIRONMENTS; ++env) {

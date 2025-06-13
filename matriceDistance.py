@@ -166,7 +166,7 @@ def generate_matrices(input_csv_path):
         if len(pharmacies_to_deliver) <= 1:
             pass # No specific warning printed for 1 or fewer pharmacies
             
-        print(f"Données des pharmacies à livrer bien récupérées : {len(pharmacies_to_deliver)} pharmacies.")
+        print(f"Pharmacies à livrer : {len(pharmacies_to_deliver)} pharmacies.")
 
     except FileNotFoundError:
         print(f"Erreur : Le fichier d'entrée est introuvable à : {input_csv_path}", file=sys.stderr)

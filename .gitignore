@@ -5,3 +5,4 @@ genetic/*.o
 /genetic/.vscode
 output.txt
 /venv/
+/venv

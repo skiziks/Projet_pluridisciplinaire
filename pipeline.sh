@@ -71,7 +71,7 @@ fi
 
 # === 7. Exécution de l'algorithme génétique ===
 echo "Exécution de l'algorithme génétique..."
-$GENETIC_EXEC 30 "$OUTPUT_FOLDER" "$OUTPUT_FILE"
+$GENETIC_EXEC 60 "$OUTPUT_FOLDER" "$OUTPUT_FILE"
 if [ $? -ne 0 ]; then
     echo "Erreur lors de l'exécution de l'algorithme génétique."
     deactivate

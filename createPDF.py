@@ -65,6 +65,85 @@ else:
 ####################             MAP             ####################
     
 
+## All routes map
+colors = [
+    '#e41a1c',  # rouge
+    '#377eb8',  # bleu
+    '#4daf4a',  # vert
+    '#984ea3',  # violet
+    '#ff7f00',  # orange
+    '#a65628',  # marron
+    '#999999',  # gris
+    '#66c2a5',   # turquoise
+    '#fc8d62',   # saumon
+    '#8da0cb'   # lavande
+]
+
+fig, ax = plt.subplots(figsize=(10, 10), dpi=150)
+
+all_lats = []
+all_lons = []
+
+for idx, route in enumerate(all_routes):
+    color = colors[idx % len(colors)]
+
+    
+    lats = [coords[i][0] for i in route]
+    lons = [coords[i][1] for i in route]
+    all_lats.extend(lats)
+    all_lons.extend(lons)
+
+    
+    gdf = gpd.GeoDataFrame(
+        geometry=gpd.points_from_xy(lats, lons),
+        crs='EPSG:4326'
+    )
+    gdf.plot(ax=ax, color=color, marker='o', markersize=40, label=f'Truck {idx + 1}')
+
+    
+    for i in range(len(route) - 1):
+        x1, y1 = coords[route[i]]
+        x2, y2 = coords[route[i + 1]]
+        ax.plot([x1, x2], [y1, y2], color=color, linewidth=2)
+
+        xm = (x1 + x2) / 2
+        ym = (y1 + y2) / 2
+        dx = x2 - x1
+        dy = y2 - y1
+        ax.annotate(
+            '',
+            xy=(xm + 0.0001 * dx, ym + 0.0001 * dy),
+            xytext=(xm - 0.0001 * dx, ym - 0.0001 * dy),
+            arrowprops=dict(arrowstyle="->", color=color, lw=1.5)
+        )
+
+    depot_x, depot_y = coords[route[0]]
+    ax.plot(depot_x, depot_y, marker='o', markersize=15, color='blue', zorder=3)
+
+lat_min, lat_max = min(all_lats), max(all_lats)
+lon_min, lon_max = min(all_lons), max(all_lons)
+lat_center = (lat_min + lat_max) / 2
+lon_center = (lon_min + lon_max) / 2
+max_span = max(lat_max - lat_min, lon_max - lon_min) * 1.2 or 0.01
+
+ax.set_xlim(lat_center - max_span / 2, lat_center + max_span / 2)
+ax.set_ylim(lon_center - max_span / 2, lon_center + max_span / 2)
+
+
+ctx.add_basemap(ax, crs='EPSG:4326', source=ctx.providers.OpenStreetMap.Mapnik)
+
+plt.title('All Delivery Routes')
+plt.legend()
+plt.tight_layout()
+plt.savefig('all_routes_map.png', dpi=300, bbox_inches='tight', pad_inches=0)
+plt.close()
+
+##Fuel total and distance total
+
+total_distance_all = 0
+total_fuel_all = 0
+
+
 # Generate a pdf for each route
 for idx, route in enumerate(all_routes, start=1):
     # Generate map
@@ -221,6 +300,10 @@ for idx, route in enumerate(all_routes, start=1):
     fuel_consumed = total_distance_km * (8.5 / 100)
     fuel_cost = fuel_consumed * 1.72
 
+    total_distance_all += total_distance_km
+    total_fuel_all += fuel_consumed
+
+
     pdf.ln(5)
     pdf.set_font('Helvetica', 'B', 11)
     # Les textes suivants sont statiques et ne devraient pas poser de problèmes, mais un remplacement est ajouté par cohérence.
@@ -232,3 +315,36 @@ for idx, route in enumerate(all_routes, start=1):
     pdf_filename = f'route_camion_{idx}.pdf'
     pdf.output(pdf_filename)
     print(f"PDF generated: {pdf_filename}")
+
+
+#Generate a PDF with all routes, fuel and distance info
+
+pdf_all = FPDF()
+pdf_all.add_page()
+pdf_all.set_font('Helvetica', 'B', 16)
+pdf_all.cell(200, 10, 'Pharmacy Delivery Routes Summary', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+pdf_all.set_font('Helvetica', 'B', 12)
+pdf_all.cell(0, 10, 'All Routes Summary', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+# Add the map of all routes
+pdf_all.image('all_routes_map.png', x=10, y=50, w=150)
+pdf_all.set_font('Helvetica', '', 9)
+# Add fuel and distance info
+pdf_all.ln(300)
+pdf_all.set_font('Helvetica', 'B', 11)
+pdf_all.cell(0, 8, "Fuel and Distance Summary", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+pdf_all.set_font('Helvetica', '', 9)
+pdf_all.cell(0, 8, f"Total distance for all routes: {total_distance_all:.0f} km", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+pdf_all.cell(0, 8, f"Total estimated fuel consumption: {total_fuel_all:.2f} L (8.5 L / 100 km)", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+pdf_all.cell(0, 8, f"Total fuel cost: {total_fuel_all * 1.72:.2f} euros (diesel: 1.72 euros / L)", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+pdf_all_filename = 'all_routes_summary.pdf'
+pdf_all.output(pdf_all_filename)
+
+print(f"Summary PDF generated: {pdf_all_filename}")
+# Clean up temporary images
+if os.path.exists('all_routes_map.png'):
+    os.remove('all_routes_map.png')
+# Clean up individual route maps
+for idx in range(1, len(all_routes) + 1):
+    map_filename = f'route_map_{idx}.png'
+    if os.path.exists(map_filename):
+        os.remove(map_filename)
