@@ -27,7 +27,7 @@ Lance le script d’installation :
 Le projet s’exécute via la commande suivante :
 
 ```bash
-./pipeline <chemin_du_fichier_CSV>
+./pipeline.sh <chemin_du_fichier_CSV>
 ```
 
 📁 Tous les fichiers d’étude se trouvent dans le dossier `livraison`.
