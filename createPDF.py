@@ -8,6 +8,7 @@ import contextily as ctx
 from PIL import Image
 from datetime import datetime, timedelta, time
 import warnings
+# unicodedata n'est plus nécessaire si on utilise que .replace()
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
@@ -177,10 +178,11 @@ for idx, route in enumerate(all_routes, start=1):
     col_widths = [70, 80, 20, 20] 
 
     pdf.set_font('Helvetica', 'B', 9)
-    pdf.cell(col_widths[0], row_height, f"Parcours camionnette {idx}", border=1, align='C')
-    pdf.cell(col_widths[1], row_height, "Address", border=1, align='C')
-    pdf.cell(col_widths[2], row_height, "Arrival", border=1, align='C')
-    pdf.cell(col_widths[3], row_height, "Departure", border=1, align='C')
+    # Remplacement des caractères problématiques directement dans les chaînes
+    pdf.cell(col_widths[0], row_height, f"Parcours camionnette {idx}".replace('Œ', 'OE').replace('œ', 'oe').replace('’', "'"), border=1, align='C')
+    pdf.cell(col_widths[1], row_height, "Address".replace('Œ', 'OE').replace('œ', 'oe').replace('’', "'"), border=1, align='C')
+    pdf.cell(col_widths[2], row_height, "Arrival".replace('Œ', 'OE').replace('œ', 'oe').replace('’', "'"), border=1, align='C')
+    pdf.cell(col_widths[3], row_height, "Departure".replace('Œ', 'OE').replace('œ', 'oe').replace('’', "'"), border=1, align='C')
     pdf.ln()
 
         # Content rows
@@ -198,6 +200,10 @@ for idx, route in enumerate(all_routes, start=1):
         elif i == len(route) - 1:
             name = "Retour entrepôt Cerp"
             departure = ""
+
+        # Remplacement des caractères problématiques directement dans les variables name et address
+        name = name.replace('Œ', 'OE').replace('œ', 'oe').replace('’', "'").replace('æ', 'ae').replace('Æ', 'AE')
+        address = address.replace('Œ', 'OE').replace('œ', 'oe').replace('’', "'").replace('æ', 'ae').replace('Æ', 'AE')
 
         pdf.cell(col_widths[0], row_height, name, border=1)
         pdf.cell(col_widths[1], row_height, address, border=1)
@@ -217,9 +223,11 @@ for idx, route in enumerate(all_routes, start=1):
 
     pdf.ln(5)
     pdf.set_font('Helvetica', 'B', 11)
-    pdf.cell(0, 8, f"Total distance : {total_distance_km:.0f} km", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 8, f"Estimated fuel consumption : {fuel_consumed:.2f}L (8.5 L / 100km)", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 8, f"Fuel price : {fuel_cost:.2f} euros (diesel : 1.72 euros / L)", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    # Les textes suivants sont statiques et ne devraient pas poser de problèmes, mais un remplacement est ajouté par cohérence.
+    pdf.cell(0, 8, f"Total distance : {total_distance_km:.0f} km".replace('Œ', 'OE').replace('œ', 'oe').replace('’', "'"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, f"Estimated fuel consumption : {fuel_consumed:.2f}L (8.5 L / 100km)".replace('Œ', 'OE').replace('œ', 'oe').replace('’', "'"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, f"Fuel price : {fuel_cost:.2f} euros (diesel : 1.72 euros / L)".replace('Œ', 'OE').replace('œ', 'oe').replace('’', "'"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
 
     pdf_filename = f'route_camion_{idx}.pdf'
     pdf.output(pdf_filename)
