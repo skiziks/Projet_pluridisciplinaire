@@ -187,8 +187,8 @@ for idx, route in enumerate(all_routes, start=1):
     pdf.set_font('Helvetica', '', 9)
     for i in range(len(route)):
         pharmacy_index = route[i]
-        name = names[pharmacy_index]
-        address = addresses[pharmacy_index]
+        name = names[pharmacy_index].replace("Œ", "OE")
+        address = addresses[pharmacy_index].replace("’", "'")
 
         arrival, departure = all_schedules[idx - 1][i]
 
